@@ -1,15 +1,22 @@
 enum ShapeType = {circle, square};
 
-// FIXME: 順番をどこかに集約する仕組みが欲しいので抽象クラスにしてメソッド持たせる方が良い
-interface Shape {
-    const static ShapeType SHAPE_TYPE;
+abstract class Shape {
     void Draw();
-    const static int DRAW_ORDER;
+    static int getOrder(Shape shape) {
+        Map<ShapeType, int> orderTable = new HashMap<ShapeType, int>();
+        
+        // FIXME: いい感じの場所で定義
+        // MAPにデータを格納
+        orderTable.put(ShapeType.circle, 1);
+        orderTable.put(ShapeType.square, 2);
+        // ... 
+
+        return orderTable.get(shape.ShapeType);
+    }
 }
 
-class Circle implements Shape {
+class Circle extends Shape {
     const static ShapeType SHAPE_TYPE = ShapeType.circle;
-    const static int DRAW_ORDER = 1;
 
     public Circle(int radius, Point center) {
         this.radius = radius;
@@ -18,12 +25,10 @@ class Circle implements Shape {
     public Draw() {
         /* 描く処理 */
     }
-    public ShapeType getType() { return SHAPE_TYPE; }
 }
 
-class Square implements Shape {
+class Square extends Shape {
     const static ShapeType SHAPE_TYPE = ShapeType.square;
-    const static int DRAW_ORDER = 2;
 
     public Square(int side, Point topLeft) {
         this.side    = side;
@@ -32,13 +37,12 @@ class Square implements Shape {
     public Draw() {
         /* 描く処理 */
     }
-    public ShapeType getType() { return SHAPE_TYPE; }    
 }
 
 class DrawingTool {
     public DrawAllShapes(List<Shape> shapeList) {
         shapeList.stream()
-            .sorted(comparing(Shape::DRAW_ORDER))
+            .sorted((a, b) -> b.getOrder() - a.getOrder())
             .forEach(Shpae::Draw);
     }
 }
