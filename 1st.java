@@ -1,8 +1,23 @@
-interface Shape {
+enum ShapeType = {circle, square};
+
+abstract class Shape {
     void Draw();
+    static int getOrder(Shape shape) {
+        Map<ShapeType, int> orderTable = new HashMap<ShapeType, int>();
+        
+        // FIXME: いい感じの場所で定義
+        // MAPにデータを格納
+        orderTable.put(ShapeType.circle, 1);
+        orderTable.put(ShapeType.square, 2);
+        // ... 
+
+        return orderTable.get(shape.ShapeType);
+    }
 }
 
-class Circle implements Shape {
+class Circle extends Shape {
+    const static ShapeType SHAPE_TYPE = ShapeType.circle;
+
     public Circle(int radius, Point center) {
         this.radius = radius;
         this.center = center;
@@ -12,7 +27,9 @@ class Circle implements Shape {
     }
 }
 
-class Square implements Shape {
+class Square extends Shape {
+    const static ShapeType SHAPE_TYPE = ShapeType.square;
+
     public Square(int side, Point topLeft) {
         this.side    = side;
         this.topLeft = topLeft;
@@ -24,9 +41,9 @@ class Square implements Shape {
 
 class DrawingTool {
     public DrawAllShapes(List<Shape> shapeList) {
-        for (Shape shape : shapeList) {
-            shape.Draw();
-        }
+        shapeList.stream()
+            .sorted((a, b) -> b.getOrder() - a.getOrder())
+            .forEach(Shpae::Draw);
     }
 }
 
