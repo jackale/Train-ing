@@ -1,6 +1,7 @@
 body {
     background-image: url('../img/bg_main.png');
     background-repeat: repeat;
+    word-wrap: break-word;
 }
 
 header {
