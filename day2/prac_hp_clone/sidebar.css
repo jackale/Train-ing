@@ -1,0 +1,16 @@
+body {
+    background-color: #F0F0FE;
+}
+
+.sidenav {
+    padding-top: 43px;
+}
+.sidenav a{
+    padding-left: 4px;
+}
+.sidenav-link {
+    font-size: 16px;
+    padding-left: 15px;
+    padding-top: 4px;
+}
+

@@ -1,0 +1,65 @@
+
+.sidenav {
+    padding-top: 51px;
+    background-color: #F0F0FE;
+    overflow-x: hidden;
+}
+
+.sidenav a{
+    padding-left: 4px;
+}
+
+.sidenav-link {
+    /* position: relative; */
+    font-size: 16px;
+    padding-left: 7px;
+    padding-top: 4px;
+}
+
+.main {
+    margin: 0px auto 0px auto;
+    width: 750px;
+    border: black solid 1px;
+    padding: 37px 0px;
+    height: 100%;
+    text-align: center;
+}
+
+header {
+    font-weight: bold;
+    font-size: 32px;
+    margin-bottom: 20px;
+}
+
+.profile {
+    position: relative;
+}
+.profile-image img {
+    position: absolute;
+    left: 2px;
+}
+
+.profile-text {
+    position: absolute;
+    top: 310px;
+    left: 30px;
+}
+
+
+
+/* 
+.content {
+    height: 100%;
+    width: 500px;
+    text-align: center;
+}
+ */
+#wrapper {
+    padding-left: 18%;
+}
+
+/* body {
+    background-image: url('./bg_main.png');
+    background-repeat: repeat;
+    background-position: 18% 0px;
+} */

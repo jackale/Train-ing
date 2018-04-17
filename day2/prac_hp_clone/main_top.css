@@ -1,0 +1,76 @@
+body {
+    background-image: url('./bg_main.png');
+    background-repeat: repeat;
+}
+
+header {
+    font-size: 32px;
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 25px;
+}
+
+#content {
+    width: 790px;
+    margin: 0px auto;
+    padding-top: 37px;
+    position: relative;
+}
+
+.profile {
+    position: absolute;
+    left: 0;
+}
+
+.profile-text {
+    padding-left: 21px;
+    padding-top: 9px;
+    font-size: 16px;
+    margin-top: 16px;
+    line-height: 180%;
+}
+
+.profile-en-text {
+    width: 225px;
+    margin-top: 54px;
+    margin-left: 3px;
+    margin-bottom: 3px;
+}
+
+.header {
+    text-align: center;
+}
+
+.info {
+    position: absolute;
+    left: 270px;
+    top: 237px;
+    width: 520px;
+}
+
+.award {
+    font-weight: bold;
+    margin-top: 15px;
+}
+
+.cinema {
+    font-weight: bold;
+    margin-top: -1px;
+}
+.cinema-list {
+    /* padding-top: 5px; */
+    padding-left: 80px;
+}
+
+.cinema-title1, .cinema-title2 {
+    margin: 5px 0px;
+}
+
+.cinema-title3 {
+    margin-top: 10px;
+}
+
+.cinema-title4 {
+    margin-top: 10px;
+    margin-bottom: 13px;
+}
