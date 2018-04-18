@@ -1,0 +1,40 @@
+body {
+    background-color: #F5F5F5;
+    font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+
+}
+#content {
+    width: 750px;
+    margin: 0 auto;
+    border: solid;
+}
+
+header {
+    font-size: 80px;
+    font-weight: lighter;
+    text-align: center;
+    color: #EAD7D8;
+}
+
+#card-box-generator > input {
+    /* デフォルトのスタイルを消す */
+    margin: 0;
+    padding: 0;
+    background: none;
+    border: none;
+    border-radius: 0;
+    outline: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    /* スタイルを適用 */
+    background-color: white;
+    font-size: 50px;
+
+}
+
+
+/* placeholderの色設定 */
+::-webkit-input-placeholder { color: #EDEDED; font-style: italic;} /* Chrome */
+::-moz-placeholder          { color: #EDEDED; font-style: italic;} /* Firefox */
+::-ms-input-placeholder     { color: #EDEDED; font-style: italic;} /* IE */
