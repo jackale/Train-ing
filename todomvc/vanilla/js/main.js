@@ -225,5 +225,29 @@ window.onload = function () {
         }
     };
     document.getElementById('switch-all-checkbox').addEventListener('click', switchAllTask);
-        
+    
+    const filterClosure = function (type) {
+        const checker = {
+            'all': function () { return true; },
+            'active': function (isCompleted) { return isCompleted === false; },
+            'completed': function (isCompleted) { return isCompleted === true;}
+        }[type];
+        return function () {
+            const cardList = document.getElementById('card-box-list').children;
+            for (let i = 0; i < cardList.length; i++) {
+                const card = cardList[i];
+                
+                const isCompleted = (card.getAttribute('data-completed') === 'true') ? true : false;
+                (checker(isCompleted)) ? show(card) : hide(card);
+            }
+        };
+    };
+
+    function show(elem) { elem.style = 'display:block;'; };
+    function hide(elem) { elem.style = 'display:none;'; };
+
+    Array.prototype.slice.call(document.getElementsByClassName('btn-filter-list')).forEach(function (elem) {
+        elem.addEventListener('click', filterClosure(elem.getAttribute('data-type')));
+    });
+
 };

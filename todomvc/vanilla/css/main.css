@@ -89,6 +89,8 @@ header {
     position: absolute;
     left: 40px;
     width: 370px;
+    height: 100%;
+    padding: 20px 0px;
     word-wrap: break-word;
 }
 
