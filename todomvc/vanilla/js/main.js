@@ -38,6 +38,8 @@ window.onload = function () {
         
         delete(taskId) {
             if (taskId >= this.taskList.length) return; // 簡易Validate
+            console.log("deleted", taskId);
+            
             this.taskList.splice(taskId, 1);
             this._syncStorage();
         }
@@ -250,4 +252,24 @@ window.onload = function () {
         elem.addEventListener('click', filterClosure(elem.getAttribute('data-type')));
     });
 
+    const deleteAllCompletedTask = function () {
+        console.log(TaskManager.list);
+        
+        const completeTasks = [];
+        TaskManager.list.forEach(function (task, taskId) {
+            if (task.isCompleted) {
+                completeTasks.push(taskId);
+            }
+        });
+        console.log(completeTasks);
+        
+        completeTasks.forEach(function (taskId) {
+            console.log(taskId);
+            
+            TaskManager.delete(taskId);
+            const dom = document.querySelector('.card[data-task-id="'+taskId+'"]');
+            dom.parentNode.removeChild(dom);            
+        });
+    };
+    document.querySelector('.card-clear-completed').addEventListener('click', deleteAllCompletedTask);
 };
