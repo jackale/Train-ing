@@ -15,7 +15,7 @@ window.onload = function () {
     //         this.content = content;
     //     }
     // }
-    
+
     /**
     * Taskを管理するクラス
     * localStorageと依存関係
@@ -24,117 +24,139 @@ window.onload = function () {
     * そうなるとdeleteした時にidが全部変更されて困るのでやっぱ保持する
     */
     const TaskManager = new class {
-        
+
         constructor() {
-            this.taskList = this._getFromStorage();
+			this.taskList = this._getFromStorage();
         }
-        
-        getTask(taskId) { return  (taskId >= this.taskList.length) ? null : this.taskList[taskId]; }
-        
+
+		find(taskId) {
+			const length  = this.taskList.length;
+			for (let i = 0; i < length; i++) {
+				const id = this.taskList[i].id;
+				if (taskId === id) {
+					return this.taskList[i];
+				}
+			}
+			return null;
+		}
+
         add(task) {
+			const id = this._publishId();
+			task.id = id;
             this.taskList.push(task);
             this._syncStorage();
         }
-        
+
         delete(taskId) {
             if (taskId >= this.taskList.length) return; // 簡易Validate
-            console.log("deleted", taskId);
-            
+
+			this.find()
+
             this.taskList.splice(taskId, 1);
             this._syncStorage();
         }
-        
+
         update(taskId, newTask) {
             if (taskId >= this.taskList.length) return; // 簡易Validate
-            this.taskList[taskId] = newTask;            
+            this.taskList[taskId] = newTask;
             this._syncStorage();
         }
-        
+
         get list() { return this.taskList; }
-        
+
         // FIXME: Storage用のクラスに切り分ける
         _getKey() { return 'todomvc'; } // クラス定数無理やり＼(^o^)／
-        
+
         _getFromStorage() {
             const key = this._getKey();
             const val = localStorage.getItem(key);
             // NOTE: 状態が三つ存在する。null, [], [something, ...]
             return (val === null) ? [] : JSON.parse(val);
         }
-        
+
         // オブジェクトとlocalStorageの内容を同期
         _syncStorage() {
             const key = this._getKey();
             const val = JSON.stringify(this.taskList);
             localStorage.setItem(key, val);
-        }
+		}
+
+		// IDを発行
+		_publishId() {
+			const key = 'todomvc/latest_id';
+			const latestId = localStorage.getItem(key );
+			const newId = (latestId === null) ? 0 : latestId + 1;
+			localStorage.setItem(key, newId);
+
+			return newId;
+		}
     };
-    
+
     // =============== Controller =============== //
-    
+
     // NOTE: モデルと合体させる？？
     const vTaskCard = new class {
         constructor() {
             this.template = document.getElementById('tpl-card');
         }
-        
+
         generate(taskId, taskText, isCompleted) {
             let node = document.importNode(this.template.content, true);
-            
+
             let domParent = node.querySelector('.card');
             domParent.setAttribute('data-task-id', taskId);
             domParent.setAttribute('data-completed', isCompleted+'');
-            
-            
+
+
             let domCheckbox = node.querySelector('.card-checkbox');
             domCheckbox.addEventListener('click', function () {
                 const parent      = this.parentNode;
                 const isCompleted = parent.getAttribute('data-completed');
                 const setVal = (isCompleted === 'true') ? false : true;
-                
+
                 // Update task
                 const taskId = parent.getAttribute('data-task-id');
-                const task = TaskManager.getTask(taskId);
+                const task = TaskManager.find(taskId);
                 task.isCompleted = setVal;
                 TaskManager.update(taskId, task);
-                
+
                 // Update view
                 parent.setAttribute('data-completed', setVal);
             });
-            
+
             let domCardText = node.querySelector('.card-text');
             domCardText.textContent = taskText;
             domCardText.addEventListener('dblclick', function () {
                 const domCardTextEdit = this.parentNode.querySelector('.card-text-edit');
-                
+
                 domCardTextEdit.style = 'display: block';
                 domCardTextEdit.querySelector('input').value = this.textContent;
-                
+
                 this.style = 'display: none;';
                 this.parentNode.querySelector('.card-delete-area').style = 'display: none;';
-                
+
                 domCardTextEdit.querySelector('input').focus();
             });
-            
+
             // FIXME: 両方にイベントを設定して削除するのでなんか変なエラー出るから直す
             let domCardTextEdit = node.querySelector('.card-text-edit input');
             domCardTextEdit.addEventListener('blur', function () {
                 const domCardTextEdit = this.parentNode;
                 const taskId = domCardTextEdit.parentNode.getAttribute('data-task-id');
-                
+
                 // TODO: 消すので共通化
                 if (this.value === '') {
                     TaskManager.delete(taskId);
                     domCardTextEdit.parentNode.parentNode.removeChild(domCardTextEdit.parentNode);
                 } else {
                     const domCardText = domCardTextEdit.parentNode.querySelector('.card-text');
-                    
-                    let task = TaskManager.getTask(taskId);
+
+                    let task = TaskManager.find(taskId);
                     task.content = this.value;
                     TaskManager.update(taskId, task);
-                    
+
                     domCardTextEdit.style = 'display: none;';
-                    
+
                     domCardText.textContent = this.value;
                     domCardText.style = 'display: block';
                     domCardText.parentNode.querySelector('.card-delete-area').style = 'display: block;';
@@ -154,7 +176,7 @@ window.onload = function () {
                 } else {
                     const domCardText = domCardTextEdit.parentNode.querySelector('.card-text');
 
-                    let task = TaskManager.getTask(taskId);
+                    let task = TaskManager.find(taskId);
                     task.content = this.value;
                     TaskManager.update(taskId, task);
 
@@ -166,27 +188,27 @@ window.onload = function () {
                 }
                 return false;
             });
-            
-            
+
+
             let domDeleteArea = node.querySelector('.card-delete-area');
             domDeleteArea.addEventListener('click', function() {
                 const taskId = this.parentNode.getAttribute('data-task-id');
-                
+
                 TaskManager.delete(taskId);
                 this.parentNode.parentNode.removeChild(this.parentNode);
             });
-            
+
             return node;
         }
-        
+
         add(taskId) {
-            const task = TaskManager.getTask(taskId);
+            const task = TaskManager.find(taskId);
             const dom = this.generate(taskId, task.content, task.isCompleted);
             document.getElementById('card-box-list').appendChild(dom);
         }
     };
-    
-    
+
+
     // =============== View =============== //
     const createTask = function (e) {
         if (e.keyCode !== 13) return false; // 13 is Key Code of Enter
@@ -195,14 +217,14 @@ window.onload = function () {
             content: this.value,
             isCompleted: false
         };
-        
+
         TaskManager.add(task);
         vTaskCard.add(TaskManager.taskList.length - 1);
-        
+
         this.value = '';
     };
     document.querySelector('#card-box-generator input').addEventListener('keydown', createTask);
-    
+
     TaskManager.list.forEach(function (task, taskId) {
         vTaskCard.add(taskId);
     });
@@ -222,12 +244,12 @@ window.onload = function () {
         const cardList = document.getElementById('card-box-list').children;
         for (let i = 0; i < cardList.length; i++) {
             const card = cardList[i];
-            card.setAttribute('data-completed', updateParameter);   
-            
+            card.setAttribute('data-completed', updateParameter);
+
         }
     };
     document.getElementById('switch-all-checkbox').addEventListener('click', switchAllTask);
-    
+
     const filterClosure = function (type) {
         const checker = {
             'all': function () { return true; },
@@ -238,7 +260,7 @@ window.onload = function () {
             const cardList = document.getElementById('card-box-list').children;
             for (let i = 0; i < cardList.length; i++) {
                 const card = cardList[i];
-                
+
                 const isCompleted = (card.getAttribute('data-completed') === 'true') ? true : false;
                 (checker(isCompleted)) ? show(card) : hide(card);
             }
@@ -254,7 +276,7 @@ window.onload = function () {
 
     const deleteAllCompletedTask = function () {
         console.log(TaskManager.list);
-        
+
         const completeTasks = [];
         TaskManager.list.forEach(function (task, taskId) {
             if (task.isCompleted) {
@@ -262,13 +284,13 @@ window.onload = function () {
             }
         });
         console.log(completeTasks);
-        
+
         completeTasks.forEach(function (taskId) {
             console.log(taskId);
-            
+
             TaskManager.delete(taskId);
             const dom = document.querySelector('.card[data-task-id="'+taskId+'"]');
-            dom.parentNode.removeChild(dom);            
+            dom.parentNode.removeChild(dom);
         });
     };
     document.querySelector('.card-clear-completed').addEventListener('click', deleteAllCompletedTask);
