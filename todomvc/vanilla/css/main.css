@@ -19,9 +19,9 @@ header {
 #card-box {
     width: 450px;
     margin: 0px auto;
+    position: relative;
 
 }
-
 
 #card-box input {
     /* デフォルトのスタイルを消す */
@@ -39,7 +39,27 @@ header {
     height: 60px;
     background-color: white;
     font-size: 25px;
-    padding-left: 50px;
+}
+
+#card-box-generator {
+    position: relative;
+    height: 60px;
+}
+
+#card-box-generator .switch-all-checkbox {
+    position: absolute;
+    left: 0;
+    width: 40px;
+    height: 100%;
+    background-color: pink;
+}
+
+#card-box-generator .card-generate-textarea {
+    position: absolute;
+    left: 40px;
+    width: 710px;
+    height: 100%;
+    
 }
 
 .card {
@@ -52,7 +72,16 @@ header {
     position: absolute;
     left: 0;
     width: 40px;
+    height: inherit;
 }
+
+.card[data-completed="true"] .card-checkbox{
+    background-color: black;
+}
+.card[data-completed="false"] .card-checkbox {
+    background-color: blue;
+}
+
 .card .card-text {
     position: absolute;
     left: 40px;
@@ -60,10 +89,19 @@ header {
     word-wrap: break-word;
 }
 
+.card .card-text-edit {
+    position: absolute;
+    left: 40px;
+    width: 410px;
+    height: 100%;
+    background-color: black;
+}
+
 .card .card-delete-area {
     position: absolute;
     left: 410px;
     width: 40px;
+    height: 100%;
     color: red;
 }
 

@@ -11,7 +11,10 @@
         <div id="card-box">
             <header>todos <!-- [FIXME] 画像にする --> </header>
             <div id="card-box-generator">
-                <input type="text" placeholder="What needs to be done?">
+                <div class="switch-all-checkbox">Something</div>
+                <div class="card-generate-textarea">
+                    <input type="text" placeholder="What needs to be done?">
+                </div>    
             </div>
 
             <div id="card-box-list"></div>
@@ -30,9 +33,12 @@
         </div>
     </div>
     <template id="tpl-card">
-        <div class="card" data-task-id="">
-            <div class="card-checkbox" data-checked=""></div>
+        <div class="card" data-task-id="" data-completed="">
+            <div class="card-checkbox"></div>
             <div class="card-text"></div>
+            <div class="card-text-edit" style="display: none;">
+                <input type="text">
+            </div>
             <div class="card-delete-area">X</div>
         </div>
     </template>
