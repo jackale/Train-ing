@@ -204,4 +204,26 @@ window.onload = function () {
     TaskManager.list.forEach(function (task, taskId) {
         vTaskCard.add(taskId);
     });
+
+    const switchAllTask = function () {
+        const isAllCompleted = TaskManager.list.every(function (task) {
+            return task.isCompleted === true;
+        });
+        const updateParameter = (isAllCompleted) ? false : true;
+
+
+        TaskManager.list.forEach(function (task, taskId) {
+            task.isCompleted = updateParameter;
+            TaskManager.update(taskId, task);
+        });
+
+        const cardList = document.getElementById('card-box-list').children;
+        for (let i = 0; i < cardList.length; i++) {
+            const card = cardList[i];
+            card.setAttribute('data-completed', updateParameter);   
+            
+        }
+    };
+    document.getElementById('switch-all-checkbox').addEventListener('click', switchAllTask);
+        
 };

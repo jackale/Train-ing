@@ -6,7 +6,6 @@ body {
 #content {
     width: 750px;
     margin: 0 auto;
-    border: solid;
 }
 
 header {
@@ -26,7 +25,7 @@ header {
 #card-box input {
     /* デフォルトのスタイルを消す */
     /* margin: 0; */
-    /* padding: 0; */
+    padding: 0;
     background: none;
     border: none;
     border-radius: 0;
@@ -35,7 +34,7 @@ header {
     -moz-appearance: none;
     appearance: none;
     /* スタイルを適用 */
-    width: 450px;
+    width: 410px;
     height: 60px;
     background-color: white;
     font-size: 25px;
@@ -46,7 +45,7 @@ header {
     height: 60px;
 }
 
-#card-box-generator .switch-all-checkbox {
+#card-box-generator #switch-all-checkbox {
     position: absolute;
     left: 0;
     width: 40px;
@@ -76,10 +75,14 @@ header {
 }
 
 .card[data-completed="true"] .card-checkbox{
-    background-color: black;
+    background-color: lightgreen;
 }
-.card[data-completed="false"] .card-checkbox {
-    background-color: blue;
+.card[data-completed="true"] .card-text{
+    text-decoration: line-through;
+    color: lightslategray;
+}
+.card[data-completed="false"] .card-text {
+    text-decoration: none;
 }
 
 .card .card-text {
