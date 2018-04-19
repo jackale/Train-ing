@@ -1,5 +1,6 @@
 window.onload = function () {
     // 使い道があまりなくなったので廃止
+    // JSONにシリアライズするので面倒な割に活用余地がなくなった
     // class Task {
     //     constructor(content, isCompleted = false) {
     //         this.content = content;
@@ -16,11 +17,20 @@ window.onload = function () {
     //     }
     // }
 
+    function each(object, callback) {
+        for (const key in object) {
+            if (object.hasOwnProperty(key)) {
+                const element = object[key];
+                callback(element, key);
+            }
+        }
+    }
+
     /**
     * Taskを管理するクラス
     * localStorageと依存関係
     * localStorageに一つのキーでタスク配列でぶっこむ。
-    * NOTE: 面倒なのでidは配列の順番。保持してないのでidの逆引きはできない
+    * NOTE: keyがidのオブジェクト。idは`task_${n}`
     * そうなるとdeleteした時にidが全部変更されて困るのでやっぱ保持する
     */
     const TaskManager = new class {
@@ -30,35 +40,32 @@ window.onload = function () {
         }
 
 		find(taskId) {
-			const length  = this.taskList.length;
-			for (let i = 0; i < length; i++) {
-				const id = this.taskList[i].id;
-				if (taskId === id) {
-					return this.taskList[i];
-				}
-			}
-			return null;
+            const task = this.taskList[taskId];
+            return (task !== undefined) ? task : null;
 		}
 
+        // TODO: keyの形式が直値チックなの修正する
         add(task) {
-			const id = this._publishId();
-			task.id = id;
-            this.taskList.push(task);
+            const id = this._publishId();
+            const key = 'task_' + id;
+            task.id = key;
+            
+            this.taskList[key] = task;
             this._syncStorage();
         }
 
         delete(taskId) {
-            if (taskId >= this.taskList.length) return; // 簡易Validate
-
-			this.find()
-
-            this.taskList.splice(taskId, 1);
+            delete this.taskList[taskId];
             this._syncStorage();
         }
 
         update(taskId, newTask) {
-            if (taskId >= this.taskList.length) return; // 簡易Validate
             this.taskList[taskId] = newTask;
+            this._syncStorage();
+        }
+
+        clear() {
+            this.taskList = {};
             this._syncStorage();
         }
 
@@ -71,7 +78,7 @@ window.onload = function () {
             const key = this._getKey();
             const val = localStorage.getItem(key);
             // NOTE: 状態が三つ存在する。null, [], [something, ...]
-            return (val === null) ? [] : JSON.parse(val);
+            return (val === null) ? {} : JSON.parse(val);
         }
 
         // オブジェクトとlocalStorageの内容を同期
@@ -84,8 +91,8 @@ window.onload = function () {
 		// IDを発行
 		_publishId() {
 			const key = 'todomvc/latest_id';
-			const latestId = localStorage.getItem(key );
-			const newId = (latestId === null) ? 0 : latestId + 1;
+			const latestId = localStorage.getItem(key);
+			const newId = (latestId === null) ? 0 : +latestId + 1;
 			localStorage.setItem(key, newId);
 
 			return newId;
@@ -203,6 +210,8 @@ window.onload = function () {
 
         add(taskId) {
             const task = TaskManager.find(taskId);
+            console.log(task, taskId);
+            
             const dom = this.generate(taskId, task.content, task.isCompleted);
             document.getElementById('card-box-list').appendChild(dom);
         }
@@ -219,24 +228,25 @@ window.onload = function () {
         };
 
         TaskManager.add(task);
-        vTaskCard.add(TaskManager.taskList.length - 1);
+        vTaskCard.add(task.id);
 
         this.value = '';
     };
     document.querySelector('#card-box-generator input').addEventListener('keydown', createTask);
 
-    TaskManager.list.forEach(function (task, taskId) {
+    each(TaskManager.list, function (task, taskId) {
         vTaskCard.add(taskId);
     });
 
     const switchAllTask = function () {
-        const isAllCompleted = TaskManager.list.every(function (task) {
-            return task.isCompleted === true;
+        let isAllCompleted = true;
+        each(TaskManager.list, function (task) {
+            if (!task.isCompleted) isAllCompleted = false;
         });
         const updateParameter = (isAllCompleted) ? false : true;
 
 
-        TaskManager.list.forEach(function (task, taskId) {
+        each(TaskManager.list, function (task, taskId) {
             task.isCompleted = updateParameter;
             TaskManager.update(taskId, task);
         });
@@ -278,7 +288,7 @@ window.onload = function () {
         console.log(TaskManager.list);
 
         const completeTasks = [];
-        TaskManager.list.forEach(function (task, taskId) {
+        each(TaskManager.list, function (task, taskId) {
             if (task.isCompleted) {
                 completeTasks.push(taskId);
             }
