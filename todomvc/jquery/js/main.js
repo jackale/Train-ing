@@ -231,6 +231,8 @@ $(() => {
 			$('#card-box-list .card[data-completed="true"]').show();
 		}
 		$('.card-display-switch').attr('data-type', type);
+		$('.btn-filter-list').attr('data-selected', false);
+		$button.attr('data-selected', true);
 	};
 
 
