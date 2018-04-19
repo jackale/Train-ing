@@ -50,7 +50,12 @@ header {
     left: 0;
     width: 40px;
     height: 100%;
+}
+#card-box-generator #switch-all-checkbox[data-enabled="true"] {
     background-color: pink;
+}
+#card-box-generator #switch-all-checkbox[data-enabled="false"] {
+    background-color: white;
 }
 
 #card-box-generator .card-generate-textarea {

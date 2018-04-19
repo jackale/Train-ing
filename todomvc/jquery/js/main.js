@@ -16,7 +16,7 @@ $(() => {
 			});
 		}
 
-		// get taskList() { return this.taskList; }
+		get length() { return Object.keys(this.taskList).length; }
 		
 		each(callback) {
 			for (const key in this.taskList) {
@@ -277,8 +277,28 @@ $(() => {
 			if(!task.isCompleted) $card.hide();
 		}
 	});
+
+	const footerControl = () => {
+		if (TaskManager.length > 0) {
+			$('#card-box-footer').show();
+		} else {
+			$('#card-box-footer').hide();
+		}
+		if (TaskManager.length - TaskManager.getActiveCount() > 0) {
+			$('.card-clear-completed').show();
+		} else {
+			$('.card-clear-completed').hide();
+		}
+		if ($('.card[:visible]').length > 0) {
+			$('#switch-all-checkbox').attr('data-enabled', true);
+		} else {
+			$('#switch-all-checkbox').attr('data-enabled', false);
+		}
+	};
+	TaskManager.change(footerControl);
 	
 	$('.card-left-num').text(TaskManager.getActiveCount() + ' item left');
+	footerControl();
 
 	_render();
 
