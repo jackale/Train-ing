@@ -70,6 +70,7 @@ window.onload = function () {
         }
 
         get list() { return this.taskList; }
+        get length() { return Object.keys(this.taskList).length; }
 
         // FIXME: Storage用のクラスに切り分ける
         _getKey() { return 'todomvc'; } // クラス定数無理やり＼(^o^)／
@@ -129,6 +130,8 @@ window.onload = function () {
 
                 // Update view
                 parent.setAttribute('data-completed', setVal);
+
+                updateNum();
             });
 
             let domCardText = node.querySelector('.card-text');
@@ -155,6 +158,7 @@ window.onload = function () {
                 if (this.value === '') {
                     TaskManager.delete(taskId);
                     domCardTextEdit.parentNode.parentNode.removeChild(domCardTextEdit.parentNode);
+                    updateNum();
                 } else {
                     const domCardText = domCardTextEdit.parentNode.querySelector('.card-text');
 
@@ -180,6 +184,7 @@ window.onload = function () {
                 if (this.value === '') {
                     TaskManager.delete(taskId);
                     domCardTextEdit.parentNode.parentNode.removeChild(domCardTextEdit.parentNode);
+                    updateNum();
                 } else {
                     const domCardText = domCardTextEdit.parentNode.querySelector('.card-text');
 
@@ -203,6 +208,7 @@ window.onload = function () {
 
                 TaskManager.delete(taskId);
                 this.parentNode.parentNode.removeChild(this.parentNode);
+                document.querySelector('.card-left-num').textContent = TaskManager.length + ' item left';
             });
 
             return node;
@@ -210,10 +216,11 @@ window.onload = function () {
 
         add(taskId) {
             const task = TaskManager.find(taskId);
-            console.log(task, taskId);
             
             const dom = this.generate(taskId, task.content, task.isCompleted);
             document.getElementById('card-box-list').appendChild(dom);
+
+            updateNum();
         }
     };
 
@@ -255,8 +262,9 @@ window.onload = function () {
         for (let i = 0; i < cardList.length; i++) {
             const card = cardList[i];
             card.setAttribute('data-completed', updateParameter);
-
         }
+        updateNum();
+        switchDisplayList();
     };
     document.getElementById('switch-all-checkbox').addEventListener('click', switchAllTask);
 
@@ -274,6 +282,8 @@ window.onload = function () {
                 const isCompleted = (card.getAttribute('data-completed') === 'true') ? true : false;
                 (checker(isCompleted)) ? show(card) : hide(card);
             }
+            document.querySelector('.card-display-switch').setAttribute('data-status', type);
+            updateNum();
         };
     };
 
@@ -285,23 +295,57 @@ window.onload = function () {
     });
 
     const deleteAllCompletedTask = function () {
-        console.log(TaskManager.list);
-
         const completeTasks = [];
         each(TaskManager.list, function (task, taskId) {
             if (task.isCompleted) {
                 completeTasks.push(taskId);
             }
         });
-        console.log(completeTasks);
 
         completeTasks.forEach(function (taskId) {
-            console.log(taskId);
-
             TaskManager.delete(taskId);
             const dom = document.querySelector('.card[data-task-id="'+taskId+'"]');
             dom.parentNode.removeChild(dom);
         });
+        updateNum();
     };
     document.querySelector('.card-clear-completed').addEventListener('click', deleteAllCompletedTask);
+    updateNum();
+
+    function updateNum() {
+        // const type = document.querySelector('.card-display-switch').getAttribute('data-status');
+        let num = 0;
+        each(TaskManager.list, function (task) {
+            if (task.isCompleted === false) num++;
+        });
+        // if (type === 'all') {
+        //     num = TaskManager.length;
+        // }
+        // else if (type === 'active') {
+        // }
+        // else if (type === 'completed') {
+        //     each(TaskManager.list, function (task) {
+        //         if (task.isCompleted === true) num++;
+        //     });
+        // }
+        document.querySelector('.card-left-num').textContent = num + ' item left';
+    }
+    
+    function switchDisplayList() {
+        // const type = document.querySelector('.card-display-switch').getAttribute('data-status');
+        // const list = document.getElementById('card-box-list').children();
+        // if (type === 'all') {
+        //     list.forEach(function (v, i) {
+        //         console.log(v, i);
+        //     });
+        // }
+        // else if (type === 'active') {
+
+        // }
+        // else if (type === 'completed') {
+        //     each(TaskManager.list, function (task) {
+        //         if (task.isCompleted === true) num++;
+        //     });
+        // }
+    }
 };
