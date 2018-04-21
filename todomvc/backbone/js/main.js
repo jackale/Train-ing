@@ -75,11 +75,13 @@ $(() => {
 					model.set('isCompleted', !isAllComplete);
 				});
 			});
+			this.taskCollection.on(EVENT.CHANGE_TASK_STATUS, (counts) => {
+				this.createTaskView.trigger(EVENT.CHANGE_TASK_STATUS, counts);
+			});
 
 			this.footerView.on(EVENT.FILTER_LIST, (type) => {
 				this.taskListView.trigger(EVENT.FILTER_LIST, type);
 			});
-
 		}
 	});
 
@@ -88,6 +90,19 @@ $(() => {
 		events: {
 			'keydown input': 'createTaskIfEnter',
 			'click #switch-all-checkbox': 'switchAllTask'
+		},
+		initialize: function () {
+			this.bind(EVENT.CHANGE_TASK_STATUS, (counts) => {
+				const active = (_.has(counts, 'active')) ? counts['active'] : 0;
+				const completed = (_.has(counts, 'completed')) ? counts['completed'] : 0;
+				if (active === 0 && completed === 0) {
+					this.$el.find('#switch-all-checkbox').attr('data-action', 'none');
+				} else if (active === 0) {
+					this.$el.find('#switch-all-checkbox').attr('data-action', 'uncomplete');
+				} else {
+					this.$el.find('#switch-all-checkbox').attr('data-action', 'complete');
+				}
+			});
 		},
 		createTaskIfEnter: function (e) {
 			if (e.keyCode === 13) {
@@ -114,7 +129,9 @@ $(() => {
 			'dblclick .card-text': 'changeEditable',
 			'blur .card-text-edit': 'updateTaskContent',
 			'keydown .card-text-edit': 'updateTaskContentIfEnter',
-			'click .card-delete-area': 'deleteTask'
+			'click .card-delete-area': 'deleteTask',
+			'mouseover': 'showRemoveButton',
+			'mouseleave': 'hideRemoveButton',
 		},
 		initialize: function () {
 			this.model.bind('change:isCompleted', this.changeIsCompleted, this);
@@ -172,6 +189,12 @@ $(() => {
 		},
 		removeTask: function () {
 			this.$el.empty();
+		},
+		showRemoveButton: function () {
+			this.$el.find('.card-delete-area').text('×');
+		},
+		hideRemoveButton: function () {
+			this.$el.find('.card-delete-area').text('');
 		}
 	});
 
@@ -215,8 +238,7 @@ $(() => {
 			});
 			this.collection.on(EVENT.CHANGE_TASK_STATUS, this.chanageNumber, this);
 			// WIP: Collectionの初期化時に考える
-			// this.collection.trigger(EVENT.CHANGE_TASK_STATUS, this.collection.getActiveCount());
-
+			// this.collection.trigger(EVENT.CHANGE_TASK_STATUS, this.collection.getCounts());
 		},
 		filterExec: function (e) {
 			const type = $(e.target).attr('data-type');
@@ -228,7 +250,8 @@ $(() => {
 			const active    = (_.has(counts, 'active')) ? counts['active'] : 0;
 			const completed = (_.has(counts, 'completed')) ? counts['completed'] : 0;
 
-			this.$el.find('.card-left-num').text(active + ' item left');
+			const item = (active === 1) ? 'item' : 'items';
+			this.$el.find('.card-left-num').text(`${active} ${item} left`);
 			if (completed === 0) {
 				this.$el.find('.card-clear-completed').hide();
 			} else {
