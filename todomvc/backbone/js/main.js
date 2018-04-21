@@ -2,6 +2,7 @@ $(() => {
 	const EVENT = {
 		'BIRTH_TASK': 0,
 		'SWITCH_ALL_TASK': 1,
+		'CHNAGE_TASK_STATUS': 2,
 	};
 
 	// == Model & Collection =================
@@ -28,6 +29,23 @@ $(() => {
 				// collection.add({ content: v });
 			});
 		},
+		getActiveCount: function () {
+			const count = this.countBy(function (model) {
+				return (!model.get('isCompleted')) ? 'active' : 'completed';
+			});
+			return (_.has(count, 'active')) ? count['active'] : 0;
+		},
+		getCounts: function () {
+			return this.countBy(function (model) {
+				return (!model.get('isCompleted')) ? 'active' : 'completed';
+			});
+		},
+		deleteCompleted: function () {
+			const models = this.filter((model) => {
+				return model.get('isCompleted');
+			});
+			this.remove(models);
+		}
 		// publishId: function () {
 		// 	const latestId = localStorage.getItem('todomvc/latest_id');
 		// 	const newId = (latestId === null) ? 0 : latestId + 1;
@@ -43,7 +61,7 @@ $(() => {
 
 			this.createTaskView = new CreateTaskView();
 			this.taskListView   = new TaskListView({collection: this.taskCollection});
-			// this.footerView     = new FooterView();
+			this.footerView     = new FooterView({collection: this.taskCollection});
 
 			this.createTaskView.on(EVENT.BIRTH_TASK, (content) => {
 				const model = new TaskModel({ 'content': content });
@@ -57,13 +75,17 @@ $(() => {
 					model.set('isCompleted', !isAllComplete);
 				});
 			});
+
+			this.footerView.on(EVENT.FILTER_LIST, (type) => {
+				this.taskListView.trigger(EVENT.FILTER_LIST, type);
+			});
+
 		}
 	});
 
 	const CreateTaskView = Backbone.View.extend({
 		el: '#card-box-generator',
 		events: {
-			'blur input': 'createTask',
 			'keydown input': 'createTaskIfEnter',
 			'click #switch-all-checkbox': 'switchAllTask'
 		},
@@ -157,6 +179,17 @@ $(() => {
 	const TaskListView = Backbone.View.extend({
 		el: '#card-box-list',
 		initialize: function () {
+			this.on(EVENT.FILTER_LIST, (type) => {
+				if (type === 'all') {
+					this.$el.find('.card').show();
+				} else if (type === 'active') {
+					this.$el.find('.card').hide();
+					this.$el.find('.card[data-completed="false"]').show();
+				} else if (type === 'completed') {
+					this.$el.find('.card').hide();
+					this.$el.find('.card[data-completed="true"]').show();
+				}
+			});
 			this.collection.on('add', (model) => {
 				const newTaskView = new TaskView({model: model});
 
@@ -173,11 +206,37 @@ $(() => {
 	const FooterView = Backbone.View.extend({
 		el: $('#card-box-footer'),
 		events: {
-			'click .btn-filter-list': filterExec,
+			'click .btn-filter-list': 'filterExec',
+			'click #clear-all-completed': 'clearAllCompletedTask'
+		},
+		initialize: function () {
+			this.collection.bind('add change:isCompleted remove', function () {
+				this.trigger(EVENT.CHANGE_TASK_STATUS, this.getCounts());
+			});
+			this.collection.on(EVENT.CHANGE_TASK_STATUS, this.chanageNumber, this);
+			// WIP: Collectionの初期化時に考える
+			// this.collection.trigger(EVENT.CHANGE_TASK_STATUS, this.collection.getActiveCount());
+
 		},
 		filterExec: function (e) {
 			const type = $(e.target).attr('data-type');
-			// WIP
+			this.$el.find('.btn-filter-list').attr('data-selected', false);
+			this.$el.find('.btn-filter-list[data-type="'+type+'"]').attr('data-selected', true);
+			this.trigger(EVENT.FILTER_LIST, type);
+		},
+		chanageNumber: function (counts) {
+			const active    = (_.has(counts, 'active')) ? counts['active'] : 0;
+			const completed = (_.has(counts, 'completed')) ? counts['completed'] : 0;
+
+			this.$el.find('.card-left-num').text(active + ' item left');
+			if (completed === 0) {
+				this.$el.find('.card-clear-completed').hide();
+			} else {
+				this.$el.find('.card-clear-completed').show();
+			}
+		},
+		clearAllCompletedTask: function () {
+			this.collection.deleteCompleted();
 		}
 	});
 
