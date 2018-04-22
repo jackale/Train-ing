@@ -11,6 +11,8 @@ $(() => {
 			this._data = this._getFromLS();
 		}
 
+		get data() { return this._data; }
+
 		find(id) {
 			return (_.has(id, this._data)) ? this._data[id] : null;
 		}
@@ -113,22 +115,14 @@ $(() => {
 			'content': '',
 			'isCompleted': false
 		},
-		initialize: function (attr, options) {
+		toggleCompleted: function () {
+			this.save({isCompleted: !this.get('isCompleted')});
 		}
 	});
 	const TaskCollection = Backbone.Collection.extend({
 		model: TaskModel,
 		initialize: function (attr) {
-			const taskList = [
-				'hoge',
-				'fuga',
-				'foo',
-				'bar'
-			];
-			const collection = this;
-			taskList.forEach(function (v) {
-				// collection.add({ content: v });
-			});
+			this.syncStorage();
 		},
 		getActiveCount: function () {
 			const count = this.countBy(function (model) {
@@ -145,13 +139,17 @@ $(() => {
 			const models = this.filter((model) => {
 				return model.get('isCompleted');
 			});
-			this.remove(models);
+			const removedModels = this.remove(models);
+			// NOTE: なぜかremoveが発火しないので個別にdestroy
+			_.each(removedModels,(m) => {m.destroy()});
+		},
+		syncStorage: function () {
+			const list = StorageManager.data;
+			_.each(list, (model, id) => {
+				this.add(model);
+			});
+			console.log(this.length + ' model is added.');
 		}
-		// publishId: function () {
-		// 	const latestId = localStorage.getItem('todomvc/latest_id');
-		// 	const newId = (latestId === null) ? 0 : latestId + 1;
-		// 	return newId;
-		// }
 	});
 
 	// == View =================
@@ -174,13 +172,14 @@ $(() => {
 					return model.get('isCompleted');
 				});
 				this.taskCollection.each(function (model) {
-					// model.set('isCompleted', !isAllComplete);
 					model.save('isCompleted', !isAllComplete);
 				});
 			});
 			this.taskCollection.on(EVENT.CHANGE_TASK_STATUS, (counts) => {
 				this.createTaskView.trigger(EVENT.CHANGE_TASK_STATUS, counts);
 			});
+
+			this.taskCollection.trigger(EVENT.CHANGE_TASK_STATUS, this.taskCollection.getCounts(), this);
 
 			this.footerView.on(EVENT.FILTER_LIST, (type) => {
 				this.taskListView.trigger(EVENT.FILTER_LIST, type);
@@ -195,17 +194,7 @@ $(() => {
 			'click #switch-all-checkbox': 'switchAllTask'
 		},
 		initialize: function () {
-			this.bind(EVENT.CHANGE_TASK_STATUS, (counts) => {
-				const active = (_.has(counts, 'active')) ? counts['active'] : 0;
-				const completed = (_.has(counts, 'completed')) ? counts['completed'] : 0;
-				if (active === 0 && completed === 0) {
-					this.$el.find('#switch-all-checkbox').attr('data-action', 'none');
-				} else if (active === 0) {
-					this.$el.find('#switch-all-checkbox').attr('data-action', 'uncomplete');
-				} else {
-					this.$el.find('#switch-all-checkbox').attr('data-action', 'complete');
-				}
-			});
+			this.bind(EVENT.CHANGE_TASK_STATUS, this.toggleIconStatus, this);
 		},
 		createTaskIfEnter: function (e) {
 			if (e.keyCode === 13) {
@@ -222,6 +211,20 @@ $(() => {
 		},
 		switchAllTask: function () {
 			this.trigger(EVENT.SWITCH_ALL_TASK);
+		},
+		toggleIconStatus: function (counts) {
+			const active    = (_.has(counts, 'active')) ? counts['active'] : 0;
+			const completed = (_.has(counts, 'completed')) ? counts['completed'] : 0;
+			let action;
+			if (active === 0 && completed === 0) {
+				action = 'none';
+			} else if (active === 0) {
+				action = 'uncomplete';
+			} else {
+				action = 'complete';
+			}
+
+			this.$el.find('#switch-all-checkbox').attr('data-action', action);
 		}
 	});
 
@@ -316,18 +319,18 @@ $(() => {
 					this.$el.find('.card[data-completed="true"]').show();
 				}
 			});
-			this.collection.on('add', (model) => {
-				const newTaskView = new TaskView({model: model});
-
-				newTaskView.on(EVENT.TRIGGER_CHECKBOX, function (model) {
-					// model.set('isCompleted', !model.get('isCompleted'));
-					model.save({
-						'isCompleted': !model.get('isCompleted')}
-					);
-				});
-
-				this.$el.append(newTaskView.$el);
+			this.collection.on('add', this.addTask, this);
+			this.render();
+		},
+		render: function () {
+			this.collection.each(this.addTask, this);
+		},
+		addTask: function (model) {
+			const newTaskView = new TaskView({model: model});
+			newTaskView.on(EVENT.TRIGGER_CHECKBOX, function (model) {
+				model.toggleCompleted();
 			});
+			this.$el.append(newTaskView.$el);
 		}
 	});
 
@@ -336,7 +339,6 @@ $(() => {
 		el: $('#card-box-footer'),
 		events: {
 			'click .btn-filter-list': 'filterExec',
-			'click': 'hoge',
 			'click #clear-all-completed': 'clearAllCompletedTask'
 		},
 		initialize: function () {
@@ -344,8 +346,9 @@ $(() => {
 				this.trigger(EVENT.CHANGE_TASK_STATUS, this.getCounts());
 			});
 			this.collection.on(EVENT.CHANGE_TASK_STATUS, this.chanageNumber, this);
-			// WIP: Collectionの初期化時に考える
-			// this.collection.trigger(EVENT.CHANGE_TASK_STATUS, this.collection.getCounts());
+
+			// TODO: 微妙...
+			this.chanageNumber(this.collection.getCounts());
 		},
 		filterExec: function (e) {
 			const type = $(e.target).attr('data-type');
@@ -364,14 +367,14 @@ $(() => {
 			} else {
 				this.$el.find('.card-clear-completed').show();
 			}
+			if (active === 0 && completed === 0) {
+				this.$el.hide();
+			} else {
+				this.$el.show();
+			}
 		},
 		clearAllCompletedTask: function () {
 			this.collection.deleteCompleted();
-		},
-		hoge: function () {
-			console.log(this.collection.each((model) => {
-				console.log(model);
-			}));
 		}
 	});
 
