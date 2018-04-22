@@ -5,6 +5,108 @@ $(() => {
 		'CHNAGE_TASK_STATUS': 2,
 	};
 
+	const StorageManager = new class {
+		constructor() {
+			this._key = 'todomvc/backbone';
+			this._data = this._getFromLS();
+		}
+
+		find(id) {
+			return (_.has(id, this._data)) ? this._data[id] : null;
+		}
+
+		create(model) {
+			if (!model.id) {
+				model.id = this._publishId();
+				model.set('id', model.id);
+			}
+
+			this._set(model.id, this.modelToJSON(model));
+			this.save();
+
+			return this.find(model);
+		}
+
+		update(model) {
+			const id = model.id;
+			this._set(id, this.modelToJSON(model));
+			this.save();
+
+			return this.find(model);
+		}
+
+		remove(model) {
+			const id = model.id;
+			this._remove(id);
+			this.save();
+		}
+
+		modelToJSON(model) {
+			const obj = model.toJSON();
+			return {
+				id: obj.id,
+				content: obj.content,
+				isCompleted: obj.isCompleted
+			};
+		}
+
+		save() {
+			localStorage.setItem(this._key, JSON.stringify(this._data));
+		}
+
+		_set(id, data) {
+			console.log(id, data);
+
+			this._data[id] = data;
+		}
+
+		_remove(id) {
+			delete this._data[id];
+		}
+
+		_getFromLS() {
+			const data = localStorage.getItem(this._key);
+			return (data !== null) ? JSON.parse(data) : {};
+		}
+
+		_publishId() {
+			const key = 'todomvc/backbone:latest_id';
+
+			const latestId = localStorage.getItem(key);
+			const newId = (latestId !== null) ? +latestId + 1 : 0;
+			localStorage.setItem(key, newId);
+			return newId;
+		}
+	}
+
+	Backbone._sync = Backbone.sync;
+	Backbone.sync = function (method, model, options) {
+		const methodMap = {
+			'read': read,
+			'create': create,
+			'patch': update,
+			'update': update,
+			'delete': remove
+		}
+
+		console.log("sync : " + method);
+
+		function read(model) {
+			return StorageManager.find(model.id);
+		}
+		function create(model) {
+			return StorageManager.create(model);
+		}
+		function update(model) {
+			return StorageManager.update(model);
+		}
+		function remove(model) {
+			StorageManager.remove(model);
+		}
+
+		return methodMap[method](model);
+	}
+
 	// == Model & Collection =================
 	const TaskModel = Backbone.Model.extend({
 		defaults: {
@@ -12,8 +114,7 @@ $(() => {
 			'isCompleted': false
 		},
 		initialize: function (attr, options) {
-		},
-
+		}
 	});
 	const TaskCollection = Backbone.Collection.extend({
 		model: TaskModel,
@@ -65,6 +166,7 @@ $(() => {
 
 			this.createTaskView.on(EVENT.BIRTH_TASK, (content) => {
 				const model = new TaskModel({ 'content': content });
+				model.save();
 				this.taskCollection.add(model);
 			});
 			this.createTaskView.on(EVENT.SWITCH_ALL_TASK, () => {
@@ -72,7 +174,8 @@ $(() => {
 					return model.get('isCompleted');
 				});
 				this.taskCollection.each(function (model) {
-					model.set('isCompleted', !isAllComplete);
+					// model.set('isCompleted', !isAllComplete);
+					model.save('isCompleted', !isAllComplete);
 				});
 			});
 			this.taskCollection.on(EVENT.CHANGE_TASK_STATUS, (counts) => {
@@ -170,7 +273,7 @@ $(() => {
 			if (content === '') {
 				this.model.destroy();
 			} else {
-				this.model.set({content: content});
+				this.model.save({content: content});
 				this.$el.find('.card-text').show();
 				this.$el.find('.card-delete-area').show();
 				$editArea.hide();
@@ -217,7 +320,10 @@ $(() => {
 				const newTaskView = new TaskView({model: model});
 
 				newTaskView.on(EVENT.TRIGGER_CHECKBOX, function (model) {
-					model.set('isCompleted', !model.get('isCompleted'));
+					// model.set('isCompleted', !model.get('isCompleted'));
+					model.save({
+						'isCompleted': !model.get('isCompleted')}
+					);
 				});
 
 				this.$el.append(newTaskView.$el);
@@ -230,6 +336,7 @@ $(() => {
 		el: $('#card-box-footer'),
 		events: {
 			'click .btn-filter-list': 'filterExec',
+			'click': 'hoge',
 			'click #clear-all-completed': 'clearAllCompletedTask'
 		},
 		initialize: function () {
@@ -260,6 +367,11 @@ $(() => {
 		},
 		clearAllCompletedTask: function () {
 			this.collection.deleteCompleted();
+		},
+		hoge: function () {
+			console.log(this.collection.each((model) => {
+				console.log(model);
+			}));
 		}
 	});
 
