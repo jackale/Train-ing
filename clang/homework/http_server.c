@@ -6,11 +6,14 @@
 #include <unistd.h>		//close()
 
 #define QUEUELIMIT 5
+
+#define DEFAULT_PORT 8080
 #define DOCUMENT_ROOT "/Users/s01715/kenshu/Train-ing/clang/homework/html"
 
 void buildHtml(char* out, char* body);
 void getRoute(char *request, char *out);
 int getContents(char *path, char *content);
+int prepareSocket(int port);
 
 int main(int argc, char *argv[])
 {
@@ -24,49 +27,46 @@ int main(int argc, char *argv[])
 	unsigned int sockFlag = 1;
 	char output[2084];
 	char *body = "<!DOCTYPE html>\r\n <html lang=\"ja\">\r\n <head>\r\n <meta http-equiv=\"content-type\" charset=\"utf-8\"><title>Test Page</title>\r\n </head>\r\n <body>\r\nHello World\r\n</body>\r\n</html>\r\n";
-	char inbuf[2084];
+	char buf[2084];
 	char path[256];
 	char _path[256];
 
-	if (argc != 2)
-	{
-		fprintf(stderr, "argument count mismatch error.\n");
+	// Set Starting Parameters
+	int option;
+	int port = 0;
+	char* documentRoot = NULL;
+
+	while((option = getopt(argc, argv, "p:d:")) != -1) {
+		if (option == '?') {
+			fprintf(stderr, "Unknown Option. -%c", option);
+			exit(EXIT_FAILURE);
+		}
+		else if (option == 'p') {
+			port = atoi(optarg);
+		}
+		else if (option == 'd') {
+			documentRoot = optarg;
+		}
+	}
+
+	if (port == 0) {
+		port = (getenv("DEFAULT_PORT") != NULL) ? atoi(getenv("DEFAULT_PORT")) : DEFAULT_PORT;
+		if (port == 0) {
+			fprintf(stderr, "invalid port number.\n");
+			exit(EXIT_FAILURE);
+		}
+	}
+	if (documentRoot == NULL) {
+		documentRoot = (getenv("DOCUMENT_ROOT") != NULL) ? getenv("DOCUMENT_ROOT") : DOCUMENT_ROOT;
+	}
+
+	if ((servSock = prepareSocket(port)) < 0) {
+		fprintf(stderr, "Failed preparing socket...");
 		exit(EXIT_FAILURE);
 	}
 
-	if ((servPort = (unsigned short)atoi(argv[1])) == 0)
-	{
-		fprintf(stderr, "invalid port number.\n");
-		exit(EXIT_FAILURE);
-	}
-
-	if ((servSock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
-	{
-		perror("socket() failed.");
-		exit(EXIT_FAILURE);
-	}
-
-	memset(&servSockAddr, 0, sizeof(servSockAddr));
-	servSockAddr.sin_family = AF_INET;
-	servSockAddr.sin_addr.s_addr = htonl(INADDR_ANY);
-	servSockAddr.sin_port = htons(servPort);
-
-	setsockopt(servSock, SOL_SOCKET, SO_REUSEADDR, (const int *)&sockFlag, sizeof(sockFlag));
-
-	// buildHtml(output, body);
-
-	if (bind(servSock, (struct sockaddr *)&servSockAddr, sizeof(servSockAddr)) < 0)
-	{
-		perror("bind() failed.");
-		exit(EXIT_FAILURE);
-	}
-
-	if (listen(servSock, QUEUELIMIT) < 0)
-	{
-		perror("listen() failed.");
-		exit(EXIT_FAILURE);
-	}
-
+	// Waitng for Access ...
+	printf("Listening to PORT:%d\nNOTICE: DOCUMENT_ROOT is %s\n", port, documentRoot);
 	while (1)
 	{
 		clitLen = sizeof(clitSockAddr);
@@ -76,11 +76,11 @@ int main(int argc, char *argv[])
 			exit(EXIT_FAILURE);
 		}
 
-		memset(inbuf, 0, sizeof(inbuf));
-		recv(clitSock, inbuf, sizeof(inbuf), 0);
+		memset(buf, 0, sizeof(buf));
+		recv(clitSock, buf, sizeof(buf), 0);
 		// 本来ならばクライアントからの要求内容をパースすべきです
 		// printf("%s\n", inbuf);
-		getRoute(inbuf, _path);
+		getRoute(buf, _path);
 		sprintf(path, "%s%s", DOCUMENT_ROOT, _path);
 
 		printf("path: %s\n", path);
@@ -102,6 +102,30 @@ int main(int argc, char *argv[])
 	}
 
 	return EXIT_SUCCESS;
+}
+
+int prepareSocket(int port) {
+	int _socket;
+	unsigned int sockFlag = 1;
+	struct sockaddr_in socketAddr; //server internet socket address
+
+	if ((_socket = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
+		return -1;
+
+	memset(&socketAddr, 0, sizeof(socketAddr));
+	socketAddr.sin_family = AF_INET;
+	socketAddr.sin_addr.s_addr = htonl(INADDR_ANY);
+	socketAddr.sin_port = htons(port);
+
+	setsockopt(_socket, SOL_SOCKET, SO_REUSEADDR, (const int *)&sockFlag, sizeof(sockFlag));
+
+	if (bind(_socket, (struct sockaddr *)&socketAddr, sizeof(socketAddr)) < 0)
+		return -1;
+
+	if (listen(_socket, QUEUELIMIT) < 0)
+		return -1;
+
+	return _socket;
 }
 
 void buildHtml (char* out, char* body) {
