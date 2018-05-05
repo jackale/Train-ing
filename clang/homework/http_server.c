@@ -8,12 +8,25 @@
 #define QUEUELIMIT 5
 
 #define DEFAULT_PORT 8080
-#define DOCUMENT_ROOT "/Users/s01715/kenshu/Train-ing/clang/homework/html"
+// #define DOCUMENT_ROOT "/Users/s01715/kenshu/Train-ing/clang/homework/html"
+#define DOCUMENT_ROOT "/Users/kazutaka/work/Train-ing/clang/homework/html"
+#define ACCEPT_HEADER_LENGTH 2048
+
+typedef struct
+{
+	char method[10];
+	char *ip;
+	char path[256];
+	char *accept[256];
+	char version[10];
+} Request;
 
 void buildHtml(char* out, char* body);
 void getRoute(char *request, char *out);
 int getContents(char *path, char *content);
 int prepareSocket(int port);
+void analyzeRequest(char *raw, Request *out);
+
 
 int main(int argc, char *argv[])
 {
@@ -30,11 +43,13 @@ int main(int argc, char *argv[])
 	char buf[2084];
 	char path[256];
 	char _path[256];
+	int httpCode = 500;
 
 	// Set Starting Parameters
 	int option;
 	int port = 0;
 	char* documentRoot = NULL;
+	Request req;
 
 	while((option = getopt(argc, argv, "p:d:")) != -1) {
 		if (option == '?') {
@@ -78,18 +93,18 @@ int main(int argc, char *argv[])
 
 		memset(buf, 0, sizeof(buf));
 		recv(clitSock, buf, sizeof(buf), 0);
-		// 本来ならばクライアントからの要求内容をパースすべきです
-		// printf("%s\n", inbuf);
-		getRoute(buf, _path);
-		sprintf(path, "%s%s", DOCUMENT_ROOT, _path);
 
-		printf("path: %s\n", path);
+		analyzeRequest(buf, &req);
+
+		// printf("%s\n", buf);
+		sprintf(path, "%s%s", documentRoot, req.path);
+
 		char content[2084];
 		if (getContents(path, content) == 0) {
-			printf("Not Found\n");
 			sprintf(content, "Not Found\r\n");
+			httpCode = 404;
 		} else {
-			printf("content:%s\n", content);
+			httpCode = 200;
 		}
 
 		buildHtml(output, content);
@@ -98,6 +113,7 @@ int main(int argc, char *argv[])
 		send(clitSock, output, (int)strlen(output), 0);
 
 		// printf("connected from %s.\n", inet_ntoa(clitSockAddr.sin_addr));
+		printf("[%s] %s:57043 [%d]: %s\n", "WIP:Time will inserted here", inet_ntoa(clitSockAddr.sin_addr), httpCode, req.path);
 		close(clitSock);
 	}
 
@@ -129,13 +145,9 @@ int prepareSocket(int port) {
 }
 
 void buildHtml (char* out, char* body) {
+	// char htmlTemplate[256] = "HTTP/1.0 200 OK\r\nContent-Length: %d\r\nContent-Type: text/html\r\n\r\n%s\r\n";
 	char htmlTemplate[256] = "HTTP/1.0 200 OK\r\nContent-Length: %d\r\nContent-Type: text/html\r\n\r\n%s\r\n";
 	sprintf(out, htmlTemplate, (int)strlen(body), body);
-}
-
-void getRoute(char *request, char *out) {
-	// NOTE: methodはいらないので読み捨てる
-	sscanf(request, "%*s %s", out);
 }
 
 int getContents(char* path, char* content) {
@@ -153,4 +165,27 @@ int getContents(char* path, char* content) {
 
 	fclose(fp);
 	return readSize;
+}
+
+void analyzeRequest(char *raw, Request *out) {
+	const char *delimiter = "\r\n";
+	char *line;
+	char field[2048], content[2048], work[ACCEPT_HEADER_LENGTH];
+
+	// Backup
+	strncpy(work, raw, strlen(raw) + 1);
+
+	// Process Request Line
+	line = strtok(work, delimiter);
+	sscanf(line, "%s %s %s", out->method, out->path, out->version);
+
+	// Process Header Field
+	while(1) {
+		line = strtok(NULL, delimiter);
+		if (line == NULL) {
+			break;
+		}
+		sscanf(line, "%[^:]%*c %s", field, content);
+		printf("%s : %s\n", field, content);
+	}
 }
