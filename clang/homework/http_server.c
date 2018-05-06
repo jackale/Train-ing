@@ -29,7 +29,6 @@ typedef struct
 	char content[2084];
 } Response;
 
-void buildHtml(char* out, char* body);
 void getRoute(char *request, char *out);
 int getContents(char *path, char *content);
 int getImage(char *path, char *content);
@@ -44,13 +43,9 @@ int main(int argc, char *argv[])
 
 	int servSock;					 //server socket descripter
 	int clitSock;					 //client socket descripter
-	struct sockaddr_in servSockAddr; //server internet socket address
 	struct sockaddr_in clitSockAddr; //client internet socket address
-	unsigned short servPort;		 //server port number
 	unsigned int clitLen;			 // client internet socket address length
-	unsigned int sockFlag = 1;
 	char output[2084];
-	char *body = "<!DOCTYPE html>\r\n <html lang=\"ja\">\r\n <head>\r\n <meta http-equiv=\"content-type\" charset=\"utf-8\"><title>Test Page</title>\r\n </head>\r\n <body>\r\nHello World\r\n</body>\r\n</html>\r\n";
 	char buf[2084];
 	char path[256];
 	int httpCode = 500;
@@ -107,18 +102,8 @@ int main(int argc, char *argv[])
 
 		analyzeRequest(buf, &req);
 
-		printf("req: %s %s %s\n", req.method, req.path, req.version);
 		sprintf(path, "%s%s", documentRoot, req.path);
 
-		// char content[2084];
-		// if (getContents(path, content) == 0) {
-		// 	sprintf(content, "Not Found\r\n");
-		// 	httpCode = 404;
-		// } else {
-		// 	httpCode = 200;
-		// }
-
-		// buildHtml(output, content);
 		cSize = buildResponse(output, path);
 
 		// send(clitSock, "Hello World\n", strlen("Hello World\n"), 0);
@@ -132,6 +117,11 @@ int main(int argc, char *argv[])
 	return EXIT_SUCCESS;
 }
 
+/**
+ * Socketの準備
+ * @param int port ポート番号
+ * @return int socket ソケット
+ */
 int prepareSocket(int port) {
 	int _socket;
 	unsigned int sockFlag = 1;
@@ -156,11 +146,12 @@ int prepareSocket(int port) {
 	return _socket;
 }
 
-void buildHtml (char* out, char* body) {
-	// char htmlTemplate[256] = "HTTP/1.0 200 OK\r\nContent-Length: %d\r\nContent-Type: text/html\r\n\r\n%s\r\n";
-	char htmlTemplate[256] = "HTTP/1.0 200 OK\r\nContent-Length: %d\r\nContent-Type: text/html\r\n\r\n%s\r\n";
-	sprintf(out, htmlTemplate, (int)strlen(body), body);
-}
+/**
+ * パスからファイル内容を取得
+ * @param char* path パス
+ * @param char* content 出力用
+ * @return int 読み込んだサイズ
+ */
 
 int getContents(char* path, char* content) {
 	FILE* fp;
@@ -178,6 +169,13 @@ int getContents(char* path, char* content) {
 	fclose(fp);
 	return readSize;
 }
+
+/**
+ * パスから画像を取得
+ * @param char* path パス
+ * @param char* content 出力用
+ * @return int 読み込んだサイズ
+ */
 int getImage(char* path, char* content) {
 	FILE* fp;
 	char buf[1024];
@@ -197,6 +195,11 @@ int getImage(char* path, char* content) {
 	return readSize;
 }
 
+/**
+ * 受け取ったraw文字列からRequest構造体へパース
+ * @param char* raw raw文字列
+ * @param Request* out 出力用
+ */
 void analyzeRequest(char *raw, Request *out) {
 	const char *delimiter = "\r\n";
 	char *line;
@@ -209,17 +212,22 @@ void analyzeRequest(char *raw, Request *out) {
 	line = strtok(work, delimiter);
 	sscanf(line, "%s %s %s", out->method, out->path, out->version);
 
-	// Process Header Field
-	while(1) {
-		line = strtok(NULL, delimiter);
-		if (line == NULL) {
-			break;
-		}
-		sscanf(line, "%[^:]%*c %s", field, content);
-	}
+	// Process Header Field (if you have to get)
+	// while(1) {
+	// 	line = strtok(NULL, delimiter);
+	// 	if (line == NULL) {
+	// 		break;
+	// 	}
+	// 	sscanf(line, "%[^:]%*c %s", field, content);
+	// }
 }
 
-
+/**
+ * レスポンスを構築
+ * @param char* output 出力用
+ * @param char* path 開くファイルパス
+ * @return int 読み込んだファイルサイズ
+ */
 int buildResponse(char *output, char *path) {
 	char extension[10], mime[64];
 	char content[2084];
@@ -250,6 +258,11 @@ int buildResponse(char *output, char *path) {
 	return len + size;
 }
 
+/**
+ * パスから拡張子を取得
+ * @param char* path パス
+ * @param char* out 出力用
+ */
 void getExtension(char *path, char *out) {
 	int i = 0, j = 0;
 	while (path[i] != '.' && path[i] != END_OF_CHAR) {
@@ -263,6 +276,11 @@ void getExtension(char *path, char *out) {
 	out[j] = END_OF_CHAR;
 }
 
+/**
+ * 拡張子からMIMEタイプを判定し取得
+ * @param char* ext 拡張子
+ * @param char* mime 出力用
+ */
 void getMIME(char *ext, char *mime) {
 	if (strcmp(ext, "html") == 0) {
 		strcpy(mime, "text/html");
