@@ -32,9 +32,10 @@ typedef struct
 void buildHtml(char* out, char* body);
 void getRoute(char *request, char *out);
 int getContents(char *path, char *content);
+int getImage(char *path, char *content);
 int prepareSocket(int port);
 void analyzeRequest(char *raw, Request *out);
-void buildResponse(char *output, char* path);
+int buildResponse(char *output, char* path);
 void getExtension(char *path, char *out);
 void getMIME(char *ext, char *mime);
 
@@ -59,6 +60,7 @@ int main(int argc, char *argv[])
 	int port = 0;
 	char* documentRoot = NULL;
 	Request req;
+	int cSize;
 
 	while((option = getopt(argc, argv, "p:d:")) != -1) {
 		if (option == '?') {
@@ -117,10 +119,10 @@ int main(int argc, char *argv[])
 		// }
 
 		// buildHtml(output, content);
-		buildResponse(output, path);
+		cSize = buildResponse(output, path);
 
 		// send(clitSock, "Hello World\n", strlen("Hello World\n"), 0);
-		send(clitSock, output, (int)strlen(output), 0);
+		send(clitSock, output, cSize, 0);
 
 		// printf("connected from %s.\n", inet_ntoa(clitSockAddr.sin_addr));
 		printf("[%s] %s [%d]: %s\n", "WIP:Time will inserted here", inet_ntoa(clitSockAddr.sin_addr), httpCode, req.path);
@@ -176,6 +178,24 @@ int getContents(char* path, char* content) {
 	fclose(fp);
 	return readSize;
 }
+int getImage(char* path, char* content) {
+	FILE* fp;
+	char buf[1024];
+	int bufsize = 1024;
+	int readSize = 0, size;
+	int i = 0, j;
+	if ((fp = fopen(path, "r")) != NULL) {
+		while ((size = fread(buf, sizeof(unsigned char), 1024, fp))) {
+			for (j = 0; j < size; j++) {
+				content[i++] = buf[j];
+			}
+			printf("\n");
+			readSize += size;
+		}
+	}
+	fclose(fp);
+	return readSize;
+}
 
 void analyzeRequest(char *raw, Request *out) {
 	const char *delimiter = "\r\n";
@@ -199,15 +219,35 @@ void analyzeRequest(char *raw, Request *out) {
 	}
 }
 
-void buildResponse(char *output, char *path) {
-	char content[2084], extension[1000], mime[1024];
-	char *template = "HTTP/1.0 200 OK\r\nContent-Length: %d\r\nContent-Type: %s\r\n\r\n%s\r\n";
-	if (getContents(path, content) == 0) {
-		strcpy(content, "Not found.\n");
-	}
+
+int buildResponse(char *output, char *path) {
+	char extension[10], mime[64];
+	char content[2084];
+	char *template = "HTTP/1.0 200 OK\r\nContent-Length: %d\r\nContent-Type: %s\r\n\r\n";//%s\r\n";
+	int result, len, i = 0, j = 0;
+	int size;
 	getExtension(path, extension);
 	getMIME(extension, mime);
-	sprintf(output, template, strlen(content), mime, content);
+
+	if (strstr(mime, "image") != NULL) {
+		result = getImage(path, content);
+		len = result;
+	} else {
+		result = getContents(path, content);
+		len = strlen(content);
+	}
+
+	if (result == 0) {
+		strcpy(content, "Not found.\n");
+		strcpy(mime, "text/plain");
+		len = strlen(content);
+	}
+	sprintf(output, template, len, mime);
+	size = strlen(output);
+	memcpy(output+strlen(output), content, len);
+	// output[i] = '\0';
+	// strcat(output, content);
+	return len + size;
 }
 
 void getExtension(char *path, char *out) {
@@ -229,6 +269,18 @@ void getMIME(char *ext, char *mime) {
 	}
 	else if (strcmp(ext, "css") == 0) {
 		strcpy(mime, "text/css");
+	}
+	else if (strcmp(ext, "js") == 0) {
+		strcpy(mime, "text/javascript");
+	}
+	else if (strcmp(ext, "gif") == 0) {
+		strcpy(mime, "image/gif");
+	}
+	else if (strcmp(ext, "png") == 0) {
+		strcpy(mime, "image/png");
+	}
+	else if (strcmp(ext, "jpg") == 0 || strcmp(ext, "jpeg") == 0) {
+		strcpy(mime, "image/jpeg");
 	}
 	else {
 		strcpy(mime, "text/plain");
