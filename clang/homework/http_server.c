@@ -12,6 +12,8 @@
 #define DOCUMENT_ROOT "/Users/kazutaka/work/Train-ing/clang/homework/html"
 #define ACCEPT_HEADER_LENGTH 2048
 
+#define END_OF_CHAR '\0'
+
 typedef struct
 {
 	char method[10];
@@ -20,13 +22,21 @@ typedef struct
 	char *accept[256];
 	char version[10];
 } Request;
+typedef struct
+{
+	char body[256];
+	char header[256];
+	char content[2084];
+} Response;
 
 void buildHtml(char* out, char* body);
 void getRoute(char *request, char *out);
 int getContents(char *path, char *content);
 int prepareSocket(int port);
 void analyzeRequest(char *raw, Request *out);
-
+void buildResponse(char *output, char* path);
+void getExtension(char *path, char *out);
+void getMIME(char *ext, char *mime);
 
 int main(int argc, char *argv[])
 {
@@ -42,7 +52,6 @@ int main(int argc, char *argv[])
 	char *body = "<!DOCTYPE html>\r\n <html lang=\"ja\">\r\n <head>\r\n <meta http-equiv=\"content-type\" charset=\"utf-8\"><title>Test Page</title>\r\n </head>\r\n <body>\r\nHello World\r\n</body>\r\n</html>\r\n";
 	char buf[2084];
 	char path[256];
-	char _path[256];
 	int httpCode = 500;
 
 	// Set Starting Parameters
@@ -96,24 +105,25 @@ int main(int argc, char *argv[])
 
 		analyzeRequest(buf, &req);
 
-		// printf("%s\n", buf);
+		printf("req: %s %s %s\n", req.method, req.path, req.version);
 		sprintf(path, "%s%s", documentRoot, req.path);
 
-		char content[2084];
-		if (getContents(path, content) == 0) {
-			sprintf(content, "Not Found\r\n");
-			httpCode = 404;
-		} else {
-			httpCode = 200;
-		}
+		// char content[2084];
+		// if (getContents(path, content) == 0) {
+		// 	sprintf(content, "Not Found\r\n");
+		// 	httpCode = 404;
+		// } else {
+		// 	httpCode = 200;
+		// }
 
-		buildHtml(output, content);
+		// buildHtml(output, content);
+		buildResponse(output, path);
 
 		// send(clitSock, "Hello World\n", strlen("Hello World\n"), 0);
 		send(clitSock, output, (int)strlen(output), 0);
 
 		// printf("connected from %s.\n", inet_ntoa(clitSockAddr.sin_addr));
-		printf("[%s] %s:57043 [%d]: %s\n", "WIP:Time will inserted here", inet_ntoa(clitSockAddr.sin_addr), httpCode, req.path);
+		printf("[%s] %s [%d]: %s\n", "WIP:Time will inserted here", inet_ntoa(clitSockAddr.sin_addr), httpCode, req.path);
 		close(clitSock);
 	}
 
@@ -155,8 +165,8 @@ int getContents(char* path, char* content) {
 	char buf[256];
 	int bufsize = 256;
 	int readSize = 0;
-	sprintf(content, "");
 	if ((fp = fopen(path, "r")) != NULL) {
+		sprintf(content, "");
 		while(fgets(buf, bufsize, fp) != NULL) {
 			sprintf(content, "%s%s\r\n", content, buf);
 			readSize += bufsize;
@@ -186,6 +196,41 @@ void analyzeRequest(char *raw, Request *out) {
 			break;
 		}
 		sscanf(line, "%[^:]%*c %s", field, content);
-		printf("%s : %s\n", field, content);
+	}
+}
+
+void buildResponse(char *output, char *path) {
+	char content[2084], extension[1000], mime[1024];
+	char *template = "HTTP/1.0 200 OK\r\nContent-Length: %d\r\nContent-Type: %s\r\n\r\n%s\r\n";
+	if (getContents(path, content) == 0) {
+		strcpy(content, "Not found.\n");
+	}
+	getExtension(path, extension);
+	getMIME(extension, mime);
+	sprintf(output, template, strlen(content), mime, content);
+}
+
+void getExtension(char *path, char *out) {
+	int i = 0, j = 0;
+	while (path[i] != '.' && path[i] != END_OF_CHAR) {
+		i++;
+	}
+	if (path[i] == END_OF_CHAR) return;
+	i++;
+	while (path[i] != END_OF_CHAR) {
+		out[j++] = path[i++];
+	}
+	out[j] = END_OF_CHAR;
+}
+
+void getMIME(char *ext, char *mime) {
+	if (strcmp(ext, "html") == 0) {
+		strcpy(mime, "text/html");
+	}
+	else if (strcmp(ext, "css") == 0) {
+		strcpy(mime, "text/css");
+	}
+	else {
+		strcpy(mime, "text/plain");
 	}
 }
