@@ -10,23 +10,24 @@
 #define DEFAULT_PORT 8080
 // #define DOCUMENT_ROOT "/Users/s01715/kenshu/Train-ing/clang/homework/html"
 #define DOCUMENT_ROOT "/Users/kazutaka/work/Train-ing/clang/homework/html"
-#define ACCEPT_HEADER_LENGTH 2048
+
+#define CONTENT_LENGTH 2084
 
 #define END_OF_CHAR '\0'
 
 typedef struct
 {
-	char method[10];
 	char *ip;
+	char method[10];
 	char path[256];
-	char *accept[256];
 	char version[10];
 } Request;
+
 typedef struct
 {
-	char body[256];
-	char header[256];
-	char content[2084];
+	int size;
+	char status[256];
+	char content[CONTENT_LENGTH];
 } Response;
 
 void getRoute(char *request, char *out);
@@ -34,7 +35,7 @@ int getContents(char *path, char *content);
 int getImage(char *path, char *content);
 int prepareSocket(int port);
 void analyzeRequest(char *raw, Request *out);
-int buildResponse(char *output, char* path);
+void buildResponse(char* path, Response* res);
 void getExtension(char *path, char *out);
 void getMIME(char *ext, char *mime);
 
@@ -45,7 +46,6 @@ int main(int argc, char *argv[])
 	int clitSock;					 //client socket descripter
 	struct sockaddr_in clitSockAddr; //client internet socket address
 	unsigned int clitLen;			 // client internet socket address length
-	char output[2084];
 	char buf[2084];
 	char path[256];
 	int httpCode = 500;
@@ -55,7 +55,7 @@ int main(int argc, char *argv[])
 	int port = 0;
 	char* documentRoot = NULL;
 	Request req;
-	int cSize;
+	Response res;
 
 	while((option = getopt(argc, argv, "p:d:")) != -1) {
 		if (option == '?') {
@@ -98,19 +98,22 @@ int main(int argc, char *argv[])
 		}
 
 		memset(buf, 0, sizeof(buf));
+		memset(&req, 0, sizeof(req));
+		memset(&res, 0, sizeof(res));
+
 		recv(clitSock, buf, sizeof(buf), 0);
 
 		analyzeRequest(buf, &req);
 
 		sprintf(path, "%s%s", documentRoot, req.path);
 
-		cSize = buildResponse(output, path);
+		buildResponse(path, &res);
 
 		// send(clitSock, "Hello World\n", strlen("Hello World\n"), 0);
-		send(clitSock, output, cSize, 0);
+		send(clitSock, res.content, res.size, 0);
 
 		// printf("connected from %s.\n", inet_ntoa(clitSockAddr.sin_addr));
-		printf("[%s] %s [%d]: %s\n", "WIP:Time will inserted here", inet_ntoa(clitSockAddr.sin_addr), httpCode, req.path);
+		printf("[%s] %s [%s]: %s\n", "WIP:Time will inserted here", inet_ntoa(clitSockAddr.sin_addr), res.status, req.path);
 		close(clitSock);
 	}
 
@@ -120,7 +123,7 @@ int main(int argc, char *argv[])
 /**
  * Socketの準備
  * @param int port ポート番号
- * @return int socket ソケット
+ * @return int socket ソケットディスクリプタ
  */
 int prepareSocket(int port) {
 	int _socket;
@@ -152,22 +155,20 @@ int prepareSocket(int port) {
  * @param char* content 出力用
  * @return int 読み込んだサイズ
  */
-
 int getContents(char* path, char* content) {
 	FILE* fp;
 	char buf[256];
 	int bufsize = 256;
-	int readSize = 0;
-	if ((fp = fopen(path, "r")) != NULL) {
-		sprintf(content, "");
-		while(fgets(buf, bufsize, fp) != NULL) {
-			sprintf(content, "%s%s\r\n", content, buf);
-			readSize += bufsize;
-		}
-	}
 
+	if ((fp = fopen(path, "r")) == NULL)
+		return 0;
+
+	sprintf(content, "");
+	while(fgets(buf, bufsize, fp) != NULL) {
+		sprintf(content, "%s%s\r\n", content, buf);
+	}
 	fclose(fp);
-	return readSize;
+	return strlen(content);
 }
 
 /**
@@ -187,7 +188,6 @@ int getImage(char* path, char* content) {
 			for (j = 0; j < size; j++) {
 				content[i++] = buf[j];
 			}
-			printf("\n");
 			readSize += size;
 		}
 	}
@@ -203,7 +203,7 @@ int getImage(char* path, char* content) {
 void analyzeRequest(char *raw, Request *out) {
 	const char *delimiter = "\r\n";
 	char *line;
-	char field[2048], content[2048], work[ACCEPT_HEADER_LENGTH];
+	char work[1024];
 
 	// Backup
 	strncpy(work, raw, strlen(raw) + 1);
@@ -224,38 +224,45 @@ void analyzeRequest(char *raw, Request *out) {
 
 /**
  * レスポンスを構築
- * @param char* output 出力用
  * @param char* path 開くファイルパス
- * @return int 読み込んだファイルサイズ
+ * @param Response* res 出力用
  */
-int buildResponse(char *output, char *path) {
+void buildResponse(char *path, Response* res) {
 	char extension[10], mime[64];
 	char content[2084];
-	char *template = "HTTP/1.0 200 OK\r\nContent-Length: %d\r\nContent-Type: %s\r\n\r\n";//%s\r\n";
-	int result, len, i = 0, j = 0;
-	int size;
+	char *template = "HTTP/1.0 %s\r\nContent-Length: %d\r\nContent-Type: %s\r\n\r\n";
+	char httpCode[64] = "200 OK";
+	int readSize;
+
 	getExtension(path, extension);
 	getMIME(extension, mime);
 
 	if (strstr(mime, "image") != NULL) {
-		result = getImage(path, content);
-		len = result;
+		readSize = getImage(path, content);
 	} else {
-		result = getContents(path, content);
-		len = strlen(content);
+		readSize = getContents(path, content);
 	}
 
-	if (result == 0) {
-		strcpy(content, "Not found.\n");
+	if (readSize == 0) {
+		strcpy(content, "Not found.\r\n");
+		strcpy(httpCode, "404 Not Found");
 		strcpy(mime, "text/plain");
-		len = strlen(content);
+		readSize = strlen(content);
 	}
-	sprintf(output, template, len, mime);
-	size = strlen(output);
-	memcpy(output+strlen(output), content, len);
-	// output[i] = '\0';
-	// strcat(output, content);
-	return len + size;
+
+	sprintf(res->content, template, httpCode, readSize, mime);
+	// バイナリはstrlenで取れないのでここで取っておく
+	res->size = strlen(res->content) + readSize;
+
+	// バイナリをコピーする場合もあるのでmemcpyで追記
+	memcpy(res->content + strlen(res->content), content, readSize);
+
+	strcpy(res->status, httpCode);
+
+	// for (int i = 0; i < len + size; i++) {
+	// 	printf("%c ", output[i]);
+	// }
+	// printf("\n");
 }
 
 /**
