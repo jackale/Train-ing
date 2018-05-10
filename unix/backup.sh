@@ -1,6 +1,6 @@
 #!/bin/bash
 
-BACKUP_ROOT="$HOME/.backup"
+BACKUP_ROOT="$HOME/.backup/$(date +%Y%m%d_%H%M%S)"
 
 function usage() {
 	echo "Usage: backup file ..."
@@ -25,6 +25,12 @@ fi
 
 src="$1"
 
+if [ $src = "-c" ]; then
+	rm -rf $(dirname $BACKUP_ROOT)
+	echo "Clear All Backups."
+	exit
+fi
+
 if [ -d $src ]; then
 	error_msg "$src: Directory can not backup."
 	exit
@@ -33,6 +39,7 @@ elif [ ! -e $src ]; then
 	exit
 fi
 
+echo $BACKUP_ROOT
 
 dst="$BACKUP_ROOT$(get_abs_path $1)"
 
