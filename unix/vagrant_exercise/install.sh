@@ -19,7 +19,7 @@ source ~/.bash_profile
 
 rbenv install -v $RUBY_VERSION
 rbenv rehash
-rbenv global -v $RUBY_VERSION
+rbenv global $RUBY_VERSION
 
 gem update --system
 gem install --no-ri --no-rdoc rails
