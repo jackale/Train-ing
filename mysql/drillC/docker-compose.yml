@@ -1,0 +1,13 @@
+mysql:
+  build: .
+  dockerfile: Dockerfile-MySQL
+  environment:
+    MYSQL_ROOT_PASSWORD: root
+    MYSQL_USER: user1
+    MYSQL_PASSWORD: user1password
+    MYSQL_DATABASE: development_db
+    TZ: "Asia/Tokyo"
+  ports:
+    - 3306:3306
+  volumes:
+    - ./db:/var/lib/mysql
