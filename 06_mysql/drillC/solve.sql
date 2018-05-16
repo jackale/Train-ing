@@ -345,25 +345,31 @@ select イベント.イベント番号, イベント名称, case when クリア�
 
 -- 65.
 \! echo 65.
-select ID, 名称 as なまえ, コード値 from パーティー JOIN コード;
+select P.ID, P.名称 as なまえ, S.コード名称 as 職業, J.コード名称 as 状態 from パーティー P
+	JOIN (select コード名称, コード値 from コード where コード種別 = '1') S ON S.コード値 = 職業コード
+	JOIN (select コード名称, コード値 from コード where コード種別 = '2') J ON J.コード値 = 状態コード;
 
 -- 66.
 \! echo 66.
-
+select P.ID, COALESCE(P.名称, '仲間になってない！', NULL) as なまえ, S.コード名称 as 職業 from (select コード名称, コード値 from コード where コード種別 = '1') S LEFT OUTER JOIN パーティー P ON S.コード値 = P.職業コード;
 
 -- 67.
 \! echo 67.
-
+select イベント番号, クリア区分, CONCAT(コード値, ':', コード名称) as クリア結果 from 経験イベント LEFT JOIN (select コード名称, コード値 from コード where コード種別 = '4') S ON S.コード値 = COALESCE(クリア結果, 'X');
 
 -- 68.
 \! echo 68.
-
+select E.イベント番号, E.イベント名称, E.前提イベント番号, Z.イベント名称 as 前提イベント名称 from イベント E join (select イベント番号, イベント名称 from イベント) Z ON Z.イベント番号 = E.前提イベント番号;
 
 -- 69.
 \! echo 69.
+select E.イベント番号, E.イベント名称, E.前提イベント番号, Z.イベント名称 as 前提イベント名称, E.後続イベント番号, A.イベント名称 as 後続イベント名称 from イベント E
+	left join (select イベント番号, イベント名称 from イベント) Z ON Z.イベント番号 = E.前提イベント番号
+	left join (select イベント番号, イベント名称 from イベント) A ON A.イベント番号 = E.後続イベント番号
+	where 前提イベント番号 IS NOT NULL or 後続イベント番号 IS NOT NULL;
 
 
 -- 70.
 \! echo 70.
-
-
+select E.イベント番号, E.イベント名称, Z.前提イベント数 from イベント E
+	join (select 前提イベント番号, COUNT(*) as 前提イベント数 from イベント where 前提イベント番号 IS NOT NULL GROUP BY 前提イベント番号) Z on Z.前提イベント番号 = E.イベント番号 order by E.イベント番号;
