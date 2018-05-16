@@ -1,3 +1,3 @@
-sqls/source _init.sql
-sqls/source _create-db.sql
-sqls/source _seed.sql
+source _init.sql
+source _create-db.sql
+source _seed.sql
