@@ -1,0 +1,3 @@
+[submodule "02_browser/todomvc"]
+	path = 02_browser/todomvc
+	url = git@github.com:jackale/todomvc.git
