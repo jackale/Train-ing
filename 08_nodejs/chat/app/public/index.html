@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta http-equiv="X-UA-Compatible" content="ie=edge">
+	<title>Chat Example</title>
+	<link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+	<h1 id="room-name"></h1>
+
+	<div id="chat">
+		<div id="room-list">
+		</div>
+		<div id="chat-text-area">
+		</div>
+		<div id="input-area">
+			<input type="text" id="chat-input-text">
+			<input type="submit" id="chat-submit">
+		</div>
+	</div>
+	<script src="/socket.io/socket.io.js" type="text/javascript"></script>
+	<script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+	<script src="js/main.js"></script>
+</body>
+</html>

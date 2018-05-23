@@ -1,0 +1,21 @@
+#chat {
+	margin: 0 100px;
+}
+
+#chat-input-text {
+	width:200px;
+	height:20px;
+	font-size: 14px;
+}
+
+#chat-submit {
+	background-color: #4285F4;
+	border: none;
+	color: white;
+	height: 23px;
+}
+
+#chat-submit:active {
+	background-color: white;
+	color: black;
+}
