@@ -35,7 +35,7 @@ io.on('connection', (socket) => {
 	socket.on('create', (task) => {
 		console.log('create');
 
-		io.sockets.emit('add', createTask(task));
+		io.sockets.emit('create', createTask(task));
 	});
 
 	socket.on('update', (task) => {

@@ -97,19 +97,17 @@ $(() => {
 			return StorageManager.find(model.id);
 		}
 		function create(model) {
-			socket.emit('create', StorageManager.modelToJSON(model));
 			return StorageManager.create(model);
 		}
 		function update(model) {
-			// socket.emit('update', StorageManager.modelToJSON(model));
 			return StorageManager.update(model);
 		}
 		function remove(model) {
-			socket.emit('update', model.id);
 			StorageManager.remove(model);
 		}
 
-		return methodMap[method](model);
+		return model;
+		// return methodMap[method](model);
 	}
 
 	// == Model & Collection =================
@@ -119,13 +117,13 @@ $(() => {
 			'isCompleted': false
 		},
 		toggleCompleted: function () {
-			this.save({isCompleted: !this.get('isCompleted')});
+			// this.save({isCompleted: !this.get('isCompleted')});
 		}
 	});
 	const TaskCollection = Backbone.Collection.extend({
 		model: TaskModel,
 		initialize: function (attr) {
-			this.syncStorage();
+			// this.syncStorage();
 		},
 		getActiveCount: function () {
 			const count = this.countBy(function (model) {
@@ -144,7 +142,10 @@ $(() => {
 			});
 			const removedModels = this.remove(models);
 			// NOTE: なぜかremoveが発火しないので個別にdestroy
-			_.each(removedModels,(m) => {m.destroy()});
+			// _.each(removedModels,(m) => {m.destroy()});
+			_.each(models,(m) => {
+				socket.emit('delete', m.get('id'));
+			});
 		},
 		syncStorage: function () {
 			const list = StorageManager.data;
@@ -164,6 +165,7 @@ $(() => {
 			this.taskListView   = new TaskListView({collection: this.taskCollection});
 			this.footerView     = new FooterView({collection: this.taskCollection});
 
+			// duplicated: this event is no longer called
 			this.createTaskView.on(EVENT.BIRTH_TASK, (content) => {
 				const model = new TaskModel({ 'content': content });
 				model.save();
@@ -174,7 +176,11 @@ $(() => {
 					return model.get('isCompleted');
 				});
 				this.taskCollection.each(function (model) {
-					model.save('isCompleted', !isAllComplete);
+					// model.save('isCompleted', !isAllComplete);
+					// FIXME: 一括でイベントを一回で発火できた方が良い
+					let task = model.toJSON();
+					task["isCompleted"] = !task["isCompleted"];
+					socket.emit('update', task);
 				});
 			});
 			this.taskCollection.on(EVENT.CHANGE_TASK_STATUS, (counts) => {
@@ -185,6 +191,25 @@ $(() => {
 
 			this.footerView.on(EVENT.FILTER_LIST, (type) => {
 				this.taskListView.trigger(EVENT.FILTER_LIST, type);
+			});
+
+			socket.on('create', (task) => {
+				const model = new TaskModel(task);
+				model.save();
+				this.taskCollection.add(model);
+			});
+
+			socket.on('update', (task) => {
+				const model = this.taskCollection.get(task["id"]);
+				console.log("socket update now: ", model);
+				console.log("socket update new: ", task);
+
+				model.save(task);
+			});
+
+			socket.on('delete', (id) => {
+				const model = this.taskCollection.get(id);
+				model.destroy();
 			});
 		}
 	});
@@ -209,7 +234,12 @@ $(() => {
 
 			this.$el.find('input').val('');
 
-			this.trigger(EVENT.BIRTH_TASK, content);
+			const model = {
+				content: content,
+				isCompleted: false
+			}
+			socket.emit('create', model);
+			// this.trigger(EVENT.BIRTH_TASK, content);
 		},
 		switchAllTask: function () {
 			this.trigger(EVENT.SWITCH_ALL_TASK);
@@ -248,7 +278,11 @@ $(() => {
 			this.render();
 		},
 		onToggleComplete: function () {
-			this.trigger(EVENT.TRIGGER_CHECKBOX, this.model);
+			// this.trigger(EVENT.TRIGGER_CHECKBOX, this.model);
+
+			let task = this.model.toJSON();
+			task["isCompleted"] = !task["isCompleted"];
+			socket.emit('update', task);
 		},
 		render: function () {
 			const attr = this.model.attributes;
@@ -260,6 +294,8 @@ $(() => {
 			this.$el.html(this.template(data));
 		},
 		changeIsCompleted: function () {
+			console.log("change is Completed");
+
 			const isCompleted = this.model.get('isCompleted');
 			const $card = this.$el.find('.card');
 			$card.attr('data-completed', isCompleted);
@@ -286,9 +322,16 @@ $(() => {
 			const content = $editArea.find('input').val();
 
 			if (content === '') {
-				this.model.destroy();
+				// this.model.destroy();
+				socket.emit('delete', this.model.get('id'));
 			} else {
-				this.model.save({content: content});
+				// this.model.save({content: content});
+				socket.emit('update', {
+					id: this.model.get('id'),
+					isCompleted: this.model.get('isCompleted'),
+					content: content
+				});
+
 				this.$el.find('.card-text').show();
 				this.$el.find('.card-delete-area').show();
 				$editArea.hide();
@@ -303,7 +346,8 @@ $(() => {
 			this.$el.find('.card-text').text(this.model.get('content'));
 		},
 		deleteTask: function () {
-			this.model.destroy();
+			// this.model.destroy();
+			socket.emit('delete', this.model.get('id'));
 		},
 		removeTask: function () {
 			this.$el.empty();
@@ -339,9 +383,9 @@ $(() => {
 		},
 		addTask: function (model) {
 			const newTaskView = new TaskView({model: model});
-			newTaskView.on(EVENT.TRIGGER_CHECKBOX, function (model) {
-				model.toggleCompleted();
-			});
+			// newTaskView.on(EVENT.TRIGGER_CHECKBOX, function (model) {
+			// 	model.toggleCompleted();
+			// });
 			if (gFilterType == 'completed') {
 				newTaskView.$el.hide();
 			}
