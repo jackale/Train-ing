@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+	<meta charset="UTF-8">
+	<title>Demo</title>
+</head>
+<body>
+<table>
+  <tr>
+    <th>emp_no</th>
+    <th>first_name</th>
+    <th>last_name</th>
+  </tr>
+ {% for row in rset %}
+  <tr>
+    <td>{{row.emp_no|escape}}</td>
+    <td>{{row.first_name|escape}}</td>
+    <td>{{row.last_name|escape}}</td>
+  </tr>
+  {% endfor %}
+</table></body>
+</html>

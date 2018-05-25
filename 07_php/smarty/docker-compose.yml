@@ -26,6 +26,8 @@ php:
   volumes:
     - ./php/:/var/www/html/
     - /var/www/html/vender # Volume Trick
+    - /var/www/html/application/views/templates # Volume Trick
+    - /var/www/html/application/views/templates_c # Volume Trick
 
 
 # db
@@ -38,8 +40,6 @@ db:
   volumes:
     - ./test_db:/data/
     # - ./test_db:/docker-entrypoint-initdb.d/
-  expose:
-    - '3306'
   volumes_from:
     - datastore
 
@@ -47,8 +47,6 @@ db:
 # redis
 redis:
   image: redis:3.0.7
-  expose:
-    - '6379'
   volumes_from:
     - datastore
 
@@ -56,15 +54,11 @@ redis:
 # memcached
 memcached:
   image: memcached:1.4.32
-  expose:
-    - '11211'
 
 
 # phpmyadmin
 phpmyadmin:
   image: phpmyadmin/phpmyadmin:4.6.4-1
-  ports:
-    - "8888:80"
   links:
     - db
   environment:

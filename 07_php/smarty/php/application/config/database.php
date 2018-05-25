@@ -76,10 +76,10 @@ $query_builder = TRUE;
 
 $db['default'] = array(
 	'dsn'	=> '',
-	'hostname' => 'mariadb', // docker-composeのリンク名
+	'hostname' => 'db', // docker-composeのリンク名
 	'username' => 'root',
-	'password' => 'password',
-	'database' => 'db1',
+	'password' => 'root',
+	'database' => 'employees',
 	'dbdriver' => 'mysqli',
 	'dbprefix' => '',
 	'pconnect' => FALSE,

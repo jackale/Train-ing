@@ -20,3 +20,21 @@ RUN curl -L -o /tmp/memcached.tar.gz https://github.com/php-memcached-dev/php-me
   && rm -r /tmp/memcached.tar.gz \
   && mv php-memcached-php7 /usr/src/php/ext/memcached \
   && docker-php-ext-install memcached
+
+# Composer
+
+RUN php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+RUN php composer-setup.php
+RUN php -r "unlink('composer-setup.php');"
+RUN mv composer.phar /usr/local/bin/composer
+
+RUN apt-get install -y git
+
+COPY composer.json /var/www/html/
+
+RUN composer install
+
+RUN mkdir -p /var/www/html/application/views/templates
+RUN mkdir -p /var/www/html/application/views/templates_c
+RUN chmod 777 /var/www/html/application/views/templates
+RUN chmod 777 /var/www/html/application/views/templates_c
