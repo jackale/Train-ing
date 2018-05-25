@@ -1,0 +1,11 @@
+{
+    "name": "jackale/traing-smarty",
+    "type": "project",
+    "description": "A training of smarty",
+    "keywords": ["tempalte"],
+    "license": "MIT",
+    "require": {
+        "php": ">=5.3.0",
+        "smarty/smarty": "^3.1"
+    }
+}

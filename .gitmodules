@@ -1,3 +1,6 @@
 [submodule "02_browser/todomvc"]
 	path = 02_browser/todomvc
 	url = git@github.com:jackale/todomvc.git
+[submodule "resources/test_db"]
+	path = resources/test_db
+	url = git@github.com:datacharmer/test_db.git

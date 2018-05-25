@@ -4,35 +4,40 @@ datastore:
 
 
 # nginx 1.11.5
-nginx: 
+nginx:
   build: ./nginx
-  ports: 
+  ports:
     - "8080:80"
-  links: 
+  links:
     - php
   volumes_from:
     - datastore
 
 
 # php:7.1-fpm
-php: 
+php:
   build: ./php
   # 別コンテナのエイリアスを設定 （リンク）
   links:
-    - mariadb
+    - db
     - redis
     - memcached
   # [ホスト]：[コンテナ] ホストのディレクトリ以下をコンテナのパスにマウント
   volumes:
     - ./php/:/var/www/html/
+    - /var/www/html/vender # Volume Trick
 
 
-# mariadb
-mariadb:
-  image: mariadb:10.1
+# db
+db:
+  build: .
+  dockerfile: Dockerfile-db
   # 環境変数
   environment:
-    MYSQL_ROOT_PASSWORD: password
+    MYSQL_ROOT_PASSWORD: root
+  volumes:
+    - ./test_db:/data/
+    # - ./test_db:/docker-entrypoint-initdb.d/
   expose:
     - '3306'
   volumes_from:
@@ -61,9 +66,9 @@ phpmyadmin:
   ports:
     - "8888:80"
   links:
-    - mariadb
+    - db
   environment:
     - PMA_ARBITRARY=1
-    - PMA_HOST=mariadb
+    - PMA_HOST=db
     - PMA_USER=root
-    - PMA_PASSWORD=password
+    - PMA_PASSWORD=root

@@ -1,0 +1,5 @@
+FROM mysql:5.7.21
+
+COPY ./test_db/employees.sql .
+# RUN mysql -u root -proot < employees.sql
+
