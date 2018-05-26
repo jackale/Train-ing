@@ -3,7 +3,8 @@ services:
   app:
     build: .
     ports:
-      - "5230:3000"
+      # - "5230:3000"
+      - 127.0.0.1:5230:3000
     volumes:
       - ./app:/opt/app
       - /opt/app/node_modules
