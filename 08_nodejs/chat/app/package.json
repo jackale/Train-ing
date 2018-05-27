@@ -4,7 +4,7 @@
   "description": "Node Practice with Chat Applicatioo",
   "main": "index.js",
   "scripts": {
-    "start": "pm2 start index.js",
+    "start": "pm2 start --no-daemon index.js --watch ./",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "arai_kazutaka",

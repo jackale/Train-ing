@@ -6,7 +6,27 @@ const http = require('http').Server(app);
 const io = require('socket.io')(http);
 const PORT = 3000;
 
-const DEFAULT_ROOM = "コウペンちゃんの部屋";
+// const Database = require('./lib/database');
+
+// const {promisify} = require('util');
+// const mysql = require('mysql');
+// const connection = mysql.createConnection({
+// 	host: 'db',
+// 	user: 'root',
+// 	password: 'root',
+// 	database: 'chat'
+// });
+
+
+// (async function hoge() {
+// 	const a = await Database.query('select * from room;', [1]);
+// 	console.log(a);
+// 	// console.log(a);
+// 	// console.log(a[0].hoge);
+// })();
+
+
+const DEFAULT_ROOM_ID = 1;
 
 let rooms = {},	users = [];
 const createRoom = (name) => {
@@ -25,9 +45,13 @@ const getRoomList = () => {
 
 app.use(express.static('public'));
 
-io.on('connection', function (socket) {
+io.on('connection', async function (socket) {
 	console.log('a user connected');
-	const room = createRoom(DEFAULT_ROOM);
+	// const room = createRoom(DEFAULT_ROOM);
+	const room = await Room.find(DEFAULT_ROOM_ID);
+	console.log(room.name);
+
+
 	const user = new User('Guest'+users.length, room);
 	users.push(user);
 	socket.join(room.name);
@@ -74,4 +98,3 @@ io.on('connection', function (socket) {
 http.listen(PORT, () => {
 	console.log(`listening on *:${PORT}`);
 });
-
