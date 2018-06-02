@@ -1,5 +1,6 @@
-const Room = require('./lib/room.js');
-const User = require('./lib/user.js');
+const Room = require('./lib/model/room');
+const Post = require('./lib/model/post');
+const User = require('./lib/user');
 const express = require('express');
 const app = express();
 const http = require('http').Server(app);
@@ -19,12 +20,9 @@ const PORT = 3000;
 
 
 // (async function hoge() {
-// 	const a = await Database.query('select * from room;', [1]);
+// 	const a = await Database.query('update ?? set ? where id = ?;', ['room', {name: 'updated'}, 1]);
 // 	console.log(a);
-// 	// console.log(a);
-// 	// console.log(a[0].hoge);
 // })();
-
 
 const DEFAULT_ROOM_ID = 1;
 
@@ -39,46 +37,48 @@ const createRoom = (name) => {
 	return room;
 }
 
-const getRoomList = () => {
-	return Object.keys(rooms);
+const getRoomList = async () => {
+	return await Room.getAll();
 }
 
 app.use(express.static('public'));
 
 io.on('connection', async function (socket) {
-	console.log('a user connected');
 	// const room = createRoom(DEFAULT_ROOM);
 	const room = await Room.find(DEFAULT_ROOM_ID);
-	console.log(room.name);
-
-
 	const user = new User('Guest'+users.length, room);
+
 	users.push(user);
-	socket.join(room.name);
+	socket.join(room.id);
 
 	socket.emit('info', {
 		currentRoom: room.name,
-		roomList: getRoomList(),
+		roomList: await getRoomList(),
 	});
 
 	socket.on('message', (msg) => {
-		io.to(user.room.name).emit('message', `${user.name}: ${msg}`);
+		io.to(user.room.id).emit('message', `${user.name}: ${msg}`);
 	});
 
-	socket.on('command', (command, args) => {
+	socket.on('command', async (command, args) => {
 		if (command === "join") {
 			const name = args[0];
 			if (name == null || name.length === 0) {
 				return;
 			}
-			const room = createRoom(name);
-			socket.join(room.name);
+			let room = await Room.findBy('name', name);
+			if (room === null) {
+				room = await Room.create({name: name});
+			}
+
+			socket.join(room.id);
 			user.moveRoom(room);
-			io.to(user.room.name).emit('info', {
+
+			io.to(user.room.id).emit('info', {
 				currentRoom: room.name,
-				roomList: getRoomList(),
+				roomList: await getRoomList(),
 			});
-			io.to(user.room.name).emit('message', `${user.name} is joined`);
+			io.to(user.room.id).emit('message', `${user.name} is joined`);
 		} else if (command === "nick") {
 			const name = args[0];
 			if (name == null || name.length === 0) {
@@ -86,7 +86,7 @@ io.on('connection', async function (socket) {
 			}
 			const oldName = user.name;
 			user.changeName(name);
-			io.to(user.room.name).emit('message', `${oldName} is now known as ${name}`);
+			io.to(user.room.id).emit('message', `${oldName} is now known as ${name}`);
 		}
 		console.log("command receive: "+command +" " + args.join(' '));
 	});
