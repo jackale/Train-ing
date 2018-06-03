@@ -5,8 +5,8 @@ $(() => {
 
 	const displayRoomList = (roomList) => {
 		let listDomStr = "<ul>";
-		$.each(roomList, (_, name) => {
-			listDomStr += "<li>" + name + "</li>";
+		$.each(roomList, (_, room) => {
+			listDomStr += "<li>" + room.name + "</li>";
 		});
 		listDomStr += "</ul>";
 		$('#room-list').empty().append(listDomStr);
@@ -20,6 +20,11 @@ $(() => {
 	socket.on('info', (info) => {
 		$('#room-name').text(info.currentRoom);
 		displayRoomList(info.roomList);
+	});
+
+	socket.on('change_room', (info) => {
+		console.log(info);
+
 	});
 
 	const sendCommand = (command, args) => {

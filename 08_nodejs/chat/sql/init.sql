@@ -1,7 +1,7 @@
 CREATE DATABASE chat;
 use chat;
 
-CREATE TABLE comment (
+CREATE TABLE post (
 	`id` INT AUTO_INCREMENT NOT NULL PRIMARY KEY,
 	`content` VARCHAR(256),
 	`room_id` INT NOT NULL,

@@ -20,6 +20,10 @@ class Model {
 					this.params[key] = value;
 				}
 			}
+			// TODO: オプション設定で拾う
+			if (params.id !== undefined) {
+				this.params.id = params.id;
+			}
 		}
 	}
 
@@ -28,6 +32,8 @@ class Model {
 		for (let i = 0; i < length; i++) {
 			const key = this._columns[i];
 			if (this.params[key] === undefined) {
+				console.log(key);
+
 				return false;
 			}
 		}
@@ -60,7 +66,8 @@ class Model {
 		}
 
 		if (this.params.id === undefined) {
-			await Database.query('insert into ?? set ?;', [this.table, this.params]);
+			const inserted = await Database.query('insert into ?? set ?;', [this.table, this.params]);
+			this.params.id = inserted.insertId;
 		} else {
 			await Database.query('update ?? set ? where id = ?;', [this.table, this.params, this.params.id]);
 		}
@@ -78,15 +85,14 @@ class Model {
 
 	static async find(id) {
 		if (id === null) return null;
-		console.log(this.table);
 
 		const room = await Database.query('select * from ?? where id = ?', [this.table, id]);
-		return (room.length > 0) ? room[0] : null;
+		return (room.length > 0) ? new this(room[0]) : null;
 	}
 
 	static async findBy(key, name) {
 		const room = await Database.query('select * from ?? where ?? = ?', [this.table, key, name]);
-		return (room.length > 0) ? room[0] : null;
+		return (room.length > 0) ? new this(room[0]) : null;
 	}
 
 	static async getAll() {
